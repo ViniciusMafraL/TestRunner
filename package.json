@@ -1,11 +1,14 @@
 {
+  "homepage": "https://viniciusmafral.github.io/TestRunner/",
   "name": "testrunner",
   "version": "0.0.0",
   "private": true,
+
   "workspaces": [
     "shared",
     "frontend",
     "backend"
+  
   ],
   "scripts": {
     "dev": "npm run dev --workspace=frontend",
@@ -13,6 +16,11 @@
     "test": "npm run test --workspace=frontend",
     "test:e2e": "npm run test:e2e --workspace=frontend",
     "lint": "npm run lint --workspace=frontend"
+  },
+  "devDependencies": {
+  "predeploy": "npm run build",
+  "deploy": "gh-pages -d dist",
+    "gh-pages": "^6.3.0"
     
   }
 }
