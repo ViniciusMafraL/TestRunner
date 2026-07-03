@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
+  base: '/TestRunner/',
   plugins: [react()],
   test: {
     environment: 'jsdom',

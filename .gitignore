@@ -5,6 +5,9 @@ secrets/
 *serviceaccount*.json
 *service-account*.json
 .env
+.env.test
+/backend
+
 .env.*
 !.env.example
 !.env.test
