@@ -1,0 +1,38 @@
+# Segredos e credenciais — nunca versionar (ver docs/architecture.md)
+secrets/
+*.pem
+*-key*.json
+*serviceaccount*.json
+*service-account*.json
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Dependências
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Testes
+coverage/
+test-results/
+playwright-report/
+blob-report/
+
+# Logs e temporários
+*.log
+*.tmp
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+specs/
+.claude/
+.specify/
+docs/
