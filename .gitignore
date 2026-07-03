@@ -36,3 +36,4 @@ specs/
 .claude/
 .specify/
 docs/
+backend/.env.example
