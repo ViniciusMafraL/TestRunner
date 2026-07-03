@@ -36,3 +36,4 @@ specs/
 .specify/
 
 backend/.env.example
+.env.test

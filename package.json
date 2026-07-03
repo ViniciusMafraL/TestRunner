@@ -1,26 +1,40 @@
 {
   "homepage": "https://viniciusmafral.github.io/TestRunner/",
-  "name": "testrunner",
+  "name": "TestRunner",
   "version": "0.0.0",
   "private": true,
-
-  "workspaces": [
-    "shared",
-    "frontend",
-    "backend"
-  
-  ],
+  "type": "module",
   "scripts": {
-    "dev": "npm run dev --workspace=frontend",
-    "build": "npm run build --workspace=frontend",
-    "test": "npm run test --workspace=frontend",
-    "test:e2e": "npm run test:e2e --workspace=frontend",
-    "lint": "npm run lint --workspace=frontend"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "shared": "*"
   },
   "devDependencies": {
-  "predeploy": "npm run build",
-  "deploy": "gh-pages -d dist",
-    "gh-pages": "^6.3.0"
-    
+    "@playwright/test": "^1.49.1",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react": "^7.37.2",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "gh-pages": "^6.3.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.4.2",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
   }
 }
