@@ -13,7 +13,6 @@ secrets/
 node_modules/
 
 # Build output
-dist
 build
 
 # Testes

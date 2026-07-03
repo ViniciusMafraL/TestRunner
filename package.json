@@ -13,5 +13,6 @@
     "test": "npm run test --workspace=frontend",
     "test:e2e": "npm run test:e2e --workspace=frontend",
     "lint": "npm run lint --workspace=frontend"
+    
   }
 }
