@@ -75,7 +75,7 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 - Mecanismo: atributo `data-theme="dark"|"light"` na raiz (`<html>`). Inicializado em `src/main.jsx` (localStorage `theme` > preferência do sistema); alternado pelo botão "Modo escuro/claro" no rodapé da sidebar via hook `src/hooks/useTheme.js` (persiste no localStorage).
 - Overrides em `:root[data-theme='dark']` no `tokens.css` — só tokens são redefinidos, componentes não têm CSS específico de tema.
 - Paleta escura (slate): fundo `#0F172A` (`--color-canvas`), painéis/tabelas/inputs `#1E293B` (`--color-white` vira cor de superfície), superfícies elevadas `#334155` (`--color-surface`), faixa de thead `#253147`, borda padrão `#334155`, texto `#F1F5F9`/`#94A3B8`/`#64748B`.
-- **A sidebar permanece clara** (`#F2F4F6`) nos dois temas — tokens próprios `--sidebar-bg/text/text-muted/border/card-bg` (cartão de sessão fica branco no escuro).
+- **A sidebar é clara (`#F2F4F6`) só no tema claro** — no escuro ela acompanha os painéis (`#1E293B`) com texto claro. Os tokens `--sidebar-bg/text/text-muted/border/card-bg` apontam para os tokens de superfície/texto gerais (`--color-white`, `--color-ink-900` etc.), então não precisam de override próprio no bloco `[data-theme='dark']` — só existem para permitir divergir no futuro, se necessário.
 - Pílulas de status e chips de severity usam **tints translúcidos** (rgba) com textos clareados no escuro; tag-chip/botão secundário/links violeta clareiam para `#c4b5fd`/`#a78bfa`; verde de sucesso vira `#4ade80` (`--text-success`).
 - Textos sobre fundos coloridos fixos (avatar, marca do logo, nav ativa lime) usam brancos/pretos literais para não inverterem com o tema.
 
@@ -93,7 +93,7 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 
 ### `SideMenu`
 - Arquivo: `src/components/SideMenu/SideMenu.jsx`
-- O que é: sidebar clara de **altura total** com borda à direita (clara nos dois temas — `#F2F4F6` no escuro). De cima para baixo: logo (quadrado violeta com ícone de bug + "Qa TestRunner"), lista de navegação com **ícones SVG de linha** (Home, Test Run, Issue Tracker, Test Plan, Report), e rodapé (`.app-sidebar-footer`) com divisor, botão **Modo escuro/claro** (lua/sol, alterna o tema), botão **Logout** (ícone + texto) e cartão de sessão (`.app-session-card`: avatar + nome + papel em uppercase).
+- O que é: sidebar de **altura total** com borda à direita — clara (`#F2F4F6`) no tema claro, e `#1E293B` (mesma cor dos painéis) com texto claro no tema escuro. De cima para baixo: logo (quadrado violeta com ícone de bug + "Qa TestRunner"), lista de navegação com **ícones SVG de linha** (Home, Test Run, Issue Tracker, Test Plan, Report), e rodapé (`.app-sidebar-footer`) com divisor, botão **Modo escuro/claro** (lua/sol, alterna o tema), botão **Logout** (ícone + texto) e cartão de sessão (`.app-session-card`: avatar + nome + papel em uppercase).
 - Item ativo: pílula lime (`.app-nav-link.active`, raio `--radius-pill`).
 - O campo de busca saiu da sidebar (foi para o cabeçalho da Issue Tracker).
 

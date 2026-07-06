@@ -84,8 +84,8 @@
   /* Elevação */
   --shadow-card: 0 8px 24px rgba(24, 24, 27, 0.08);
 
-  /* Tokens semânticos de tema — redefinidos no modo escuro. A sidebar tem
-     grupo próprio porque permanece clara nos dois temas. */
+  /* Tokens semânticos de tema — redefinidos no modo escuro. Os tokens de
+     sidebar apontam para os de superfície/texto para acompanhar o tema. */
   --sidebar-bg: var(--color-white);
   --sidebar-text: var(--color-ink-900);
   --sidebar-text-muted: var(--color-gray-600);
@@ -104,8 +104,9 @@
 
 /* Modo escuro — ativado via data-theme na raiz (inicializado em main.jsx a
    partir do localStorage ou da preferência do sistema). Paleta slate:
-   fundo #0F172A, painéis/tabelas #1E293B, borda padrão #334155; a sidebar
-   fica clara (#F2F4F6) para contraste com o conteúdo. */
+   fundo #0F172A, painéis/tabelas/sidebar #1E293B, borda padrão #334155.
+   A sidebar não tem tokens próprios de cor no escuro — ela herda
+   --color-white/--color-ink-900/etc, então acompanha o resto dos painéis. */
 :root[data-theme='dark'] {
   --color-canvas: #0f172a;
   --color-white: #1e293b;
@@ -116,12 +117,6 @@
   --color-gray-400: #64748b;
   --color-border-200: #334155;
   --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.35);
-
-  --sidebar-bg: #f2f4f6;
-  --sidebar-text: #18181b;
-  --sidebar-text-muted: #6b7280;
-  --sidebar-border: #e2e8f0;
-  --sidebar-card-bg: #ffffff;
 
   --link-color: #a78bfa;
   --text-success: #4ade80;
@@ -188,7 +183,7 @@ button {
 
 .button-primary {
   background: var(--color-lime);
-  color: var(--color-ink-900);
+  color: #18181b;
 }
 
 .button-secondary {
@@ -243,7 +238,7 @@ button {
   align-items: center;
   gap: var(--space-2);
   background: var(--color-lime);
-  color: var(--color-ink-900);
+  color: #18181b;
   font: var(--font-label);
   font-weight: 700;
   text-decoration: none;
