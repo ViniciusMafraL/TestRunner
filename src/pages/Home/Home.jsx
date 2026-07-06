@@ -3,9 +3,10 @@ import { api } from '../../api/client.js';
 import { IssueDetailModal } from '../../components/IssueDetailModal/IssueDetailModal.jsx';
 import { Loading } from '../../components/Loading/Loading.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
-import { StatusDot } from '../../components/StatusDot/StatusDot.jsx';
+import { StatusPill } from '../../components/StatusPill/StatusPill.jsx';
 import { AvatarWithLabel } from '../../components/Avatar/Avatar.jsx';
-import { issueStatusCategory } from '../../utils/statusCategory.js';
+
+const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance' };
 
 const COLUMN_WIDTHS = {
   checkbox: 32,
@@ -111,15 +112,23 @@ export function Home() {
                     <input type="checkbox" disabled aria-hidden="true" />
                   </td>
                   <td>
-                    <StatusDot status={issue.status} category={issueStatusCategory(issue.status)} />
+                    <StatusPill status={issue.status} />
                   </td>
                   <td className="table-cell-ellipsis">{issue.title}</td>
-                  <td className="table-cell-ellipsis">{issue.severity}</td>
+                  <td className="table-cell-ellipsis">
+                    {issue.severity ? (
+                      <span className={`severity-chip severity-chip--${SEVERITY_SLUG[issue.severity] ?? 'muted'}`}>{issue.severity}</span>
+                    ) : (
+                      ''
+                    )}
+                  </td>
                   <td className="table-cell-ellipsis">
                     <AvatarWithLabel name={issue.foundBy} />
                   </td>
-                  <td className="table-cell-ellipsis">{issue.version}</td>
-                  <td className="table-cell-ellipsis">{issue.tag}</td>
+                  <td className="table-cell-ellipsis">
+                    <span className="cell-mono">{issue.version}</span>
+                  </td>
+                  <td className="table-cell-ellipsis">{issue.tag ? <span className="tag-chip">{issue.tag}</span> : ''}</td>
                 </tr>
               ))}
             </tbody>

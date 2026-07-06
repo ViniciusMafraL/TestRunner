@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { FoundBy } from 'shared/enums.js';
 import { useSession } from '../../auth/SessionContext.jsx';
+import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
 
 export function Login() {
   const { isAuthenticated, loginFixed, loginGuest } = useSession();
@@ -56,13 +57,7 @@ export function Login() {
           <label htmlFor="fixed-name" style={{ font: 'var(--font-label)' }}>
             Entrar como membro da equipe
           </label>
-          <select id="fixed-name" value={fixedName} onChange={(event) => setFixedName(event.target.value)}>
-            {FoundBy.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+          <Dropdown id="fixed-name" value={fixedName} options={FoundBy} onChange={setFixedName} />
           <button type="submit" className="button-primary" disabled={pending}>
             Entrar
           </button>

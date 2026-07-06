@@ -10,7 +10,7 @@ test.describe('User Story 1 - Login e navegação protegida', () => {
     await page.goto('/login');
     await page.getByRole('button', { name: 'Entrar', exact: true }).click();
     await expect(page).toHaveURL(/\/home/);
-    for (const section of ['Home', 'Test Run', 'Test Plan', 'Issue Tracker', 'Reporter']) {
+    for (const section of ['Home', 'Test Run', 'Test Plan', 'Issue Tracker', 'Report']) {
       await expect(page.getByRole('link', { name: section })).toBeVisible();
     }
   });
@@ -20,7 +20,7 @@ test.describe('User Story 1 - Login e navegação protegida', () => {
     await page.getByLabel(/Ou entre como convidado/).fill('Visitante');
     await page.getByRole('button', { name: 'Entrar como convidado' }).click();
     await expect(page).toHaveURL(/\/home/);
-    await page.getByRole('link', { name: 'Reporter' }).click();
+    await page.getByRole('link', { name: 'Report', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Enviar' })).toHaveCount(0);
   });
 

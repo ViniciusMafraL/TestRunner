@@ -13,7 +13,7 @@ describe('ColumnVisibilityMenu (componente)', () => {
     const onToggle = vi.fn();
     render(<ColumnVisibilityMenu fields={fields} isVisible={() => true} onToggle={onToggle} alwaysVisibleFields={['title']} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Colunas' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('checkbox', { name: 'Severity' }));
@@ -23,7 +23,7 @@ describe('ColumnVisibilityMenu (componente)', () => {
   it('a checkbox do campo sempre-visível aparece desabilitada e marcada', async () => {
     render(<ColumnVisibilityMenu fields={fields} isVisible={() => true} onToggle={() => {}} alwaysVisibleFields={['title']} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Colunas' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
 
     const titleCheckbox = screen.getByRole('checkbox', { name: 'Title' });
     expect(titleCheckbox).toBeDisabled();

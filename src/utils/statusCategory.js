@@ -4,6 +4,22 @@ export function issueStatusCategory(status) {
   return StatusGroup[status] ?? 'desconhecido';
 }
 
+/* Slug visual por status individual — cores de pill/dot do redesign do Issue Tracker. */
+const ISSUE_STATUS_SLUG = {
+  Open: 'open',
+  'To review': 'review',
+  'In progress': 'progress',
+  'By Design': 'bydesign',
+  Fixed: 'validated',
+  Done: 'validated',
+  Closed: 'closed',
+  "Won't fix": 'wontfix',
+};
+
+export function issueStatusSlug(status) {
+  return ISSUE_STATUS_SLUG[status] ?? 'desconhecido';
+}
+
 const TEST_RUN_CATEGORY = {
   Pendente: 'run-pendente',
   'Em andamento': 'run-andamento',

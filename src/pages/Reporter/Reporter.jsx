@@ -3,12 +3,18 @@ import { Severity, Tag, FoundBy, Platform, Keywords, Store } from 'shared/enums.
 import { api } from '../../api/client.js';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
+import { FIELD_ICONS } from '../../components/FieldIcons/FieldIcons.jsx';
+import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
 
-const SELECT_FIELDS = [
+/* Campos principais sempre visíveis; os demais ficam atrás de "Mais campos". */
+const PRIMARY_SELECTS = [
   { name: 'severity', label: 'Severity', options: Severity },
-  { name: 'tag', label: 'Tag', options: Tag },
   { name: 'foundBy', label: 'Found By', options: FoundBy },
   { name: 'platform', label: 'Platform', options: Platform },
+];
+
+const EXTRA_SELECTS = [
+  { name: 'tag', label: 'Tag', options: Tag },
   { name: 'keywords', label: 'Keywords', options: Keywords },
   { name: 'store', label: 'Store', options: Store },
 ];
@@ -26,19 +32,37 @@ const INITIAL_FORM = {
   store: '',
 };
 
+function SelectRow({ field, value, onChange }) {
+  const id = `field-${field.name}`;
+  return (
+    <div className="field-row">
+      <label className="field-label" htmlFor={id}>
+        {FIELD_ICONS[field.name]}
+        {field.label}
+      </label>
+      <div className="field-control">
+        <Dropdown id={id} value={value} options={['', ...field.options]} onChange={(next) => onChange(field.name, next)} />
+      </div>
+    </div>
+  );
+}
+
 export function Reporter() {
   const { canWrite } = useSession();
   const [form, setForm] = useState(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState(null);
   const [submitError, setSubmitError] = useState(null);
+  const [showExtra, setShowExtra] = useState(false);
 
   if (!canWrite) {
     return (
       <div>
         <PageHeader breadcrumb="" title="Report" />
-        <div className="card">
-          <p>Sessões de convidado têm acesso somente leitura e não podem reportar novas issues.</p>
+        <div className="form-panel">
+          <div className="form-panel-body">
+            <p style={{ margin: 0 }}>Sessões de convidado têm acesso somente leitura e não podem reportar novas issues.</p>
+          </div>
         </div>
       </div>
     );
@@ -72,53 +96,100 @@ export function Reporter() {
     <div>
       <PageHeader breadcrumb="" title="Report Issue" />
 
-      <form onSubmit={handleSubmit} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', maxWidth: 480 }}>
-        <label>
-          Title *
-          <input type="text" value={form.title} onChange={(event) => updateField('title', event.target.value)} />
-          {fieldErrors.title ? <span role="alert" style={{ color: 'var(--color-status-error)' }}>{fieldErrors.title}</span> : null}
-        </label>
+      <form onSubmit={handleSubmit} className="form-panel">
+        <div className="form-panel-body">
+          <div>
+            <input
+              className="form-title-input"
+              type="text"
+              aria-label="Title"
+              placeholder="Título da issue"
+              value={form.title}
+              onChange={(event) => updateField('title', event.target.value)}
+            />
+            {fieldErrors.title ? (
+              <div role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)', marginTop: 'var(--space-1)' }}>
+                {fieldErrors.title}
+              </div>
+            ) : null}
+          </div>
+          <textarea
+            className="form-desc-input"
+            aria-label="Description"
+            placeholder="Adicione uma descrição — passos para reproduzir, comportamento esperado…"
+            value={form.description}
+            onChange={(event) => updateField('description', event.target.value)}
+          />
+        </div>
 
-        <label>
-          Version *
-          <input type="text" placeholder="0.0.0" value={form.version} onChange={(event) => updateField('version', event.target.value)} />
-          {fieldErrors.version ? <span role="alert" style={{ color: 'var(--color-status-error)' }}>{fieldErrors.version}</span> : null}
-        </label>
+        <div className="fields-label">Fields</div>
 
-        <label>
-          Description
-          <textarea value={form.description} onChange={(event) => updateField('description', event.target.value)} />
-        </label>
-
-        <label>
-          Attachment (link do Google Drive)
-          <input type="text" value={form.attachment} onChange={(event) => updateField('attachment', event.target.value)} />
-        </label>
-
-        {SELECT_FIELDS.map((field) => (
-          <label key={field.name}>
-            {field.label}
-            <select value={form[field.name]} onChange={(event) => updateField(field.name, event.target.value)}>
-              <option value="">—</option>
-              {field.options.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+        <div className="field-row">
+          <label className="field-label" htmlFor="field-version">
+            {FIELD_ICONS.version}
+            Version *
           </label>
+          <div className="field-control">
+            <input
+              id="field-version"
+              type="text"
+              placeholder="0.0.0"
+              value={form.version}
+              onChange={(event) => updateField('version', event.target.value)}
+            />
+            {fieldErrors.version ? (
+              <span role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)' }}>
+                {fieldErrors.version}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {PRIMARY_SELECTS.map((field) => (
+          <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
         ))}
 
-        <button type="submit" className="button-primary">
-          Enviar
+        <button type="button" className="form-more-toggle" onClick={() => setShowExtra((previous) => !previous)}>
+          <span aria-hidden="true">{showExtra ? '▾' : '▸'}</span>
+          {showExtra ? 'Ocultar campos extras' : 'Mais campos (Tag, Keywords, Store, Attachment)'}
         </button>
 
-        {successMessage ? <p style={{ color: 'var(--color-lime)' }}>{successMessage}</p> : null}
-        {submitError ? (
-          <p role="alert" style={{ color: 'var(--color-status-error)' }}>
-            {submitError}
-          </p>
+        {showExtra ? (
+          <>
+            {EXTRA_SELECTS.map((field) => (
+              <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
+            ))}
+            <div className="field-row">
+              <label className="field-label" htmlFor="field-attachment">
+                {FIELD_ICONS.attachment}
+                Attachment
+              </label>
+              <div className="field-control">
+                <input
+                  id="field-attachment"
+                  type="text"
+                  placeholder="Link do Google Drive"
+                  value={form.attachment}
+                  onChange={(event) => updateField('attachment', event.target.value)}
+                />
+              </div>
+            </div>
+          </>
         ) : null}
+
+        <div className="form-footer">
+          {successMessage ? (
+            <span style={{ font: 'var(--font-label)', color: 'var(--text-success)', marginRight: 'auto' }}>{successMessage}</span>
+          ) : null}
+          {submitError ? (
+            <span role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)', marginRight: 'auto' }}>
+              {submitError}
+            </span>
+          ) : null}
+          <button type="submit" className="button-primary">
+            Enviar
+          </button>
+        </div>
       </form>
     </div>
   );

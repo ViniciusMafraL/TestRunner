@@ -13,9 +13,10 @@ test.describe('User Story 3 - Gestão de status no Issue Tracker', () => {
 
   test('reverte status ao anterior quando a gravação falha', async ({ page }) => {
     const row = page.getByRole('row').filter({ hasText: 'Placar não atualiza em tempo real' });
-    await row.getByRole('combobox').selectOption('Done');
+    await row.getByRole('combobox').click();
+    await page.getByRole('option', { name: 'Done' }).click();
     await expect(page.getByRole('alert')).toBeVisible();
-    await expect(row.getByRole('combobox')).toHaveValue('In progress');
+    await expect(row.getByRole('combobox')).toContainText('In progress');
   });
 
   test('menu lateral mostra Issue Tracker acima de Test Plan', async ({ page }) => {
@@ -35,7 +36,7 @@ test.describe('User Story 3 - Gestão de status no Issue Tracker', () => {
   test('alternar uma coluna no seletor persiste após reload', async ({ page }) => {
     await expect(page.getByRole('columnheader', { name: 'Store' }).first()).toBeVisible();
 
-    await page.getByRole('button', { name: 'Colunas' }).click();
+    await page.getByRole('button', { name: 'Columns' }).click();
     await page.getByRole('checkbox', { name: 'Store' }).uncheck();
     await page.getByRole('button', { name: 'Fechar' }).click();
     await expect(page.getByRole('columnheader', { name: 'Store' })).toHaveCount(0);
@@ -45,7 +46,7 @@ test.describe('User Story 3 - Gestão de status no Issue Tracker', () => {
   });
 
   test('ativar muitas colunas aciona rolagem horizontal na tabela', async ({ page }) => {
-    await page.getByRole('button', { name: 'Colunas' }).click();
+    await page.getByRole('button', { name: 'Columns' }).click();
     for (const field of ['ID', 'Tag', 'Platform', 'Description', 'Attachment', 'Created In']) {
       await page.getByRole('checkbox', { name: field }).check();
     }
@@ -59,8 +60,8 @@ test.describe('User Story 3 - Gestão de status no Issue Tracker', () => {
     expect(scrollWidth).toBeGreaterThan(clientWidth);
   });
 
-  test('botão flutuante "Reporter" navega para a tela de Reporter', async ({ page }) => {
-    await expect(page.locator('a.fab')).toHaveText('Reporter');
+  test('botão flutuante "New Report" navega para a tela de Reporter', async ({ page }) => {
+    await expect(page.locator('a.fab')).toHaveText('New Report');
     await page.locator('a.fab').click();
     await expect(page).toHaveURL(/\/reporter/);
   });

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Platform, TestType } from 'shared/enums.js';
+import { Dropdown } from '../Dropdown/Dropdown.jsx';
 
 const INITIAL_FORM = { build: '', version: '', testType: TestType[0], responsible: '', platform: Platform[0] };
 
@@ -30,7 +31,7 @@ export function TestRunForm({ onSubmit, onClose }) {
       role="dialog"
       aria-modal="true"
       aria-label="Nova demanda de Test Run"
-      style={{ position: 'fixed', inset: 0, background: 'rgba(24,24,27,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      className="modal-overlay"
       onClick={onClose}
     >
       <form
@@ -49,15 +50,9 @@ export function TestRunForm({ onSubmit, onClose }) {
           Version *
           <input type="text" placeholder="0.0.0" value={form.version} onChange={(event) => updateField('version', event.target.value)} />
         </label>
-        <label>
+        <label htmlFor="test-run-type">
           Tipo de teste
-          <select value={form.testType} onChange={(event) => updateField('testType', event.target.value)}>
-            {TestType.map((type) => (
-              <option key={type} value={type}>
-                {type}
-              </option>
-            ))}
-          </select>
+          <Dropdown id="test-run-type" value={form.testType} options={TestType} onChange={(next) => updateField('testType', next)} />
         </label>
         <label>
           Responsável *
@@ -68,15 +63,9 @@ export function TestRunForm({ onSubmit, onClose }) {
             onChange={(event) => updateField('responsible', event.target.value)}
           />
         </label>
-        <label>
+        <label htmlFor="test-run-platform">
           Plataforma
-          <select value={form.platform} onChange={(event) => updateField('platform', event.target.value)}>
-            {Platform.map((platform) => (
-              <option key={platform} value={platform}>
-                {platform}
-              </option>
-            ))}
-          </select>
+          <Dropdown id="test-run-platform" value={form.platform} options={Platform} onChange={(next) => updateField('platform', next)} />
         </label>
 
         {error ? (

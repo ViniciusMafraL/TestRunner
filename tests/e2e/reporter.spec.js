@@ -4,7 +4,7 @@ test.describe('User Story 4 - Registro de nova issue via Reporter', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
     await page.getByRole('button', { name: 'Entrar', exact: true }).click();
-    await page.getByRole('link', { name: 'Reporter' }).click();
+    await page.getByRole('link', { name: 'Report', exact: true }).click();
   });
 
   test('bloqueia envio sem campos obrigatórios', async ({ page }) => {

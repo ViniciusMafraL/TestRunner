@@ -59,19 +59,19 @@ describe('IssueTracker (componente)', () => {
     await screen.findByText('Crash ao abrir o Hub em dispositivos Android');
     expect(screen.queryByRole('columnheader', { name: 'ID' })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Colunas' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Columns' }));
     await userEvent.click(screen.getByRole('checkbox', { name: 'ID' }));
     await userEvent.click(screen.getByRole('button', { name: 'Fechar' }));
 
     expect(screen.getAllByRole('columnheader', { name: 'ID' })[0]).toBeInTheDocument();
   });
 
-  it('exibe o botão flutuante "Reporter" apontando para /reporter', async () => {
+  it('exibe o botão flutuante "New Report" apontando para /reporter', async () => {
     seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Crash ao abrir o Hub em dispositivos Android');
-    const fab = screen.getByRole('link', { name: 'Reporter' });
+    const fab = screen.getByRole('link', { name: 'New Report' });
     expect(fab).toHaveAttribute('href', '/reporter');
   });
 });
