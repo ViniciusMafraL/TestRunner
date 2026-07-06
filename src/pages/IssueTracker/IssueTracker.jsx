@@ -22,11 +22,13 @@ import { AvatarWithLabel } from '../../components/Avatar/Avatar.jsx';
 import { Loading } from '../../components/Loading/Loading.jsx';
 import { ColumnVisibilityMenu } from '../../components/ColumnVisibilityMenu/ColumnVisibilityMenu.jsx';
 import { FloatingActionButton } from '../../components/FloatingActionButton/FloatingActionButton.jsx';
+import { SelectionActionsBar } from '../../components/SelectionActionsBar/SelectionActionsBar.jsx';
+import { Checkbox } from '../../components/Checkbox/Checkbox.jsx';
 
 const COLUMN_WIDTHS = {
-  checkbox: 32,
+  checkbox: 24,
   id: 90,
-  status: 150,
+  status: 120,
   severity: 110,
   tag: 90,
   title: 220,
@@ -40,9 +42,23 @@ const COLUMN_WIDTHS = {
   createdIn: 110,
 };
 
+/**
+ * Colunas sem largura fixa: no table-layout fixed, elas absorvem toda a sobra
+ * de espaço da tabela (como o Title da Home), mantendo as demais colunas justas.
+ */
+const FLEX_COLUMNS = ['title', 'description'];
+
 const VISIBILITY_STORAGE_KEY = 'issueTracker.visibleColumns.v1';
 
-const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance' };
+/**
+ * Status literal gravado ao arquivar em lote. Está fora do enum de Status de
+ * propósito: a API aceita valores fora do enum por contrato, e qualquer valor
+ * desconhecido cai na seção "Não reconhecido" do tracker — que é onde as
+ * issues arquivadas devem aparecer. Na planilha fica o texto legível "Arquivado".
+ */
+const ARCHIVED_STATUS = 'Arquivado';
+
+const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
 function severitySlug(severity) {
   return SEVERITY_SLUG[severity] ?? 'muted';
@@ -88,6 +104,11 @@ export function IssueTracker() {
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useLocalStorageState('issueTracker.collapsedGroups.v1', {});
   const [query, setQuery] = useState('');
+  // Seleção em lote: efêmera de propósito (ação momentânea, não preferência).
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [actionMessage, setActionMessage] = useState(null);
+  const [archiving, setArchiving] = useState(false);
   const { run, error } = useOptimisticUpdate();
   const { isVisible, toggle } = useColumnVisibility(
     VISIBILITY_STORAGE_KEY,
@@ -171,6 +192,93 @@ export function IssueTracker() {
       applyLocally: (status) => applyStatusLocally(id, status),
       persist: (status) => api.updateIssueStatus(id, status),
     });
+  }
+
+  function toggleIssueSelection(id) {
+    setActionMessage(null);
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  /**
+   * Checkbox do header do grupo: com o modo desligado, liga o modo de seleção
+   * e já marca as issues visíveis do grupo (comportamento padrão de "select
+   * all"); com o modo ligado, alterna a seleção do grupo respeitando a busca.
+   */
+  function toggleGroupSelection(filteredIssues) {
+    setActionMessage(null);
+    const ids = filteredIssues.map((issue) => issue.id);
+    if (!selectionMode) {
+      setSelectionMode(true);
+      setSelectedIds(new Set(ids));
+      return;
+    }
+    setSelectedIds((previous) => {
+      const next = new Set(previous);
+      const allSelected = ids.length > 0 && ids.every((id) => next.has(id));
+      if (allSelected) ids.forEach((id) => next.delete(id));
+      else ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  function cancelSelection() {
+    setSelectionMode(false);
+    setSelectedIds(new Set());
+    setActionMessage(null);
+  }
+
+  function selectedIssuesInOrder() {
+    return allIssues.filter((issue) => selectedIds.has(issue.id));
+  }
+
+  async function handleCopyLinks() {
+    const links = selectedIssuesInOrder().map(
+      (issue) => `${window.location.origin}${window.location.pathname}#/issue-tracker/${encodeURIComponent(issue.id)}`,
+    );
+    try {
+      await navigator.clipboard.writeText(links.join('\n'));
+      setActionMessage(links.length === 1 ? '1 link copiado' : `${links.length} links copiados`);
+    } catch {
+      setActionMessage('Não foi possível copiar — a área de transferência está indisponível');
+    }
+  }
+
+  /**
+   * Arquiva as selecionadas uma a uma pelo endpoint existente de status
+   * (sem endpoint bulk — YAGNI, ver contracts/api.md). Sequencial de propósito:
+   * cada escrita relê a planilha no backend, e paralelizar estoura a quota do
+   * Sheets à toa. Falhas parciais mantêm a issue selecionada para nova tentativa.
+   */
+  async function handleArchive() {
+    const ids = selectedIssuesInOrder().map((issue) => issue.id);
+    setArchiving(true);
+    setActionMessage(null);
+    const failed = [];
+    for (const id of ids) {
+      try {
+        await api.updateIssueStatus(id, ARCHIVED_STATUS);
+        applyStatusLocally(id, ARCHIVED_STATUS);
+        setSelectedIds((previous) => {
+          const next = new Set(previous);
+          next.delete(id);
+          return next;
+        });
+      } catch {
+        failed.push(id);
+      }
+    }
+    setArchiving(false);
+    const archivedCount = ids.length - failed.length;
+    if (failed.length === 0) {
+      setActionMessage(archivedCount === 1 ? '1 issue arquivada' : `${archivedCount} issues arquivadas`);
+    } else {
+      setActionMessage(`${archivedCount} arquivada(s); falhou em: ${failed.join(', ')}`);
+    }
   }
 
   function renderCell(issue, field) {
@@ -302,10 +410,18 @@ export function IssueTracker() {
                       <thead>
                         <tr>
                           <th style={{ width: COLUMN_WIDTHS.checkbox }}>
-                            <input type="checkbox" disabled aria-hidden="true" />
+                            <Checkbox
+                              ariaLabel={`Selecionar todas as issues do grupo ${statusLabel(group.status)}`}
+                              checked={
+                                selectionMode &&
+                                filteredIssues.length > 0 &&
+                                filteredIssues.every((issue) => selectedIds.has(issue.id))
+                              }
+                              onChange={() => toggleGroupSelection(filteredIssues)}
+                            />
                           </th>
                           {visibleColumns.map((field) => (
-                            <th key={field} style={{ width: COLUMN_WIDTHS[field] }}>
+                            <th key={field} style={{ width: FLEX_COLUMNS.includes(field) ? undefined : COLUMN_WIDTHS[field] }}>
                               {ISSUE_FIELD_LABELS[field]}
                             </th>
                           ))}
@@ -315,7 +431,14 @@ export function IssueTracker() {
                         {filteredIssues.map((issue) => (
                           <tr key={issue.id}>
                             <td>
-                              <input type="checkbox" disabled aria-hidden="true" />
+                              {/* Fora do modo de seleção o checkbox some; a célula fica para manter o alinhamento. */}
+                              {selectionMode ? (
+                                <Checkbox
+                                  ariaLabel={`Selecionar issue ${issue.id}`}
+                                  checked={selectedIds.has(issue.id)}
+                                  onChange={() => toggleIssueSelection(issue.id)}
+                                />
+                              ) : null}
                             </td>
                             {visibleColumns.map((field) => (
                               <td key={field} className="table-cell-ellipsis">
@@ -341,7 +464,19 @@ export function IssueTracker() {
         onIssueUpdate={canWrite ? handleIssueUpdate : undefined}
       />
 
-      <FloatingActionButton to="/reporter" label="New Report" />
+      {selectionMode ? (
+        <SelectionActionsBar
+          count={selectedIds.size}
+          canWrite={canWrite}
+          busy={archiving}
+          message={actionMessage}
+          onCopyLinks={handleCopyLinks}
+          onArchive={handleArchive}
+          onCancel={cancelSelection}
+        />
+      ) : (
+        <FloatingActionButton to="/reporter" label="New Report" />
+      )}
     </div>
   );
 }

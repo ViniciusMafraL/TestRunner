@@ -7,7 +7,7 @@ import { AvatarWithLabel } from '../Avatar/Avatar.jsx';
 import { FIELD_ICONS } from '../FieldIcons/FieldIcons.jsx';
 import { Dropdown } from '../Dropdown/Dropdown.jsx';
 
-const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance' };
+const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
 /* Mesmos seletores de valores fixos do Reporter (ver contracts/api.md). */
 const EDIT_SELECTS = [

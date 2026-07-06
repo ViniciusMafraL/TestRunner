@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Checkbox } from '../Checkbox/Checkbox.jsx';
 
 export function ColumnVisibilityMenu({ fields, isVisible, onToggle, alwaysVisibleFields = [] }) {
   const [open, setOpen] = useState(false);
@@ -25,15 +26,14 @@ export function ColumnVisibilityMenu({ fields, isVisible, onToggle, alwaysVisibl
             <h2 style={{ font: 'var(--font-heading-3)', marginBottom: 'var(--space-3)' }}>Colunas visíveis</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
               {fields.map(({ field, label }) => (
-                <label key={field} style={{ flexDirection: 'row', alignItems: 'center', gap: 'var(--space-2)' }}>
-                  <input
-                    type="checkbox"
-                    checked={isVisible(field)}
-                    disabled={alwaysVisibleFields.includes(field)}
-                    onChange={() => onToggle(field)}
-                  />
+                <Checkbox
+                  key={field}
+                  checked={isVisible(field)}
+                  disabled={alwaysVisibleFields.includes(field)}
+                  onChange={() => onToggle(field)}
+                >
                   {label}
-                </label>
+                </Checkbox>
               ))}
             </div>
             <button type="button" className="button-primary" style={{ marginTop: 'var(--space-4)' }} onClick={() => setOpen(false)}>

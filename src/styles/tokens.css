@@ -43,6 +43,8 @@
   --severity-major-text: #d97706;
   --severity-compliance-bg: #dbeafe;
   --severity-compliance-text: #2563eb;
+  --severity-normal-bg: #dcfce7;
+  --severity-normal-text: #16a34a;
   --severity-muted-bg: #f4f4f5;
   --severity-muted-text: #52525b;
 
@@ -144,6 +146,8 @@
   --severity-major-text: #fbbf24;
   --severity-compliance-bg: rgba(37, 99, 235, 0.24);
   --severity-compliance-text: #93c5fd;
+  --severity-normal-bg: rgba(34, 197, 94, 0.22);
+  --severity-normal-text: #4ade80;
   --severity-muted-bg: rgba(148, 163, 184, 0.16);
   --severity-muted-text: #cbd5e1;
 }
@@ -259,8 +263,65 @@ textarea {
   color: var(--color-ink-900);
 }
 
-input[type='checkbox'] {
-  accent-color: var(--color-violet);
+/* Checkbox do design system (componente Checkbox.jsx): input nativo mantido
+   para acessibilidade, mas visualmente escondido atrás da caixa customizada. */
+.checkbox {
+  position: relative;
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.checkbox input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkbox-box {
+  width: 16px;
+  height: 16px;
+  border-radius: 5px;
+  border: 1px solid var(--color-border-200);
+  background: var(--color-white);
+  color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox input:checked + .checkbox-box {
+  background: var(--color-violet);
+  border-color: var(--color-violet);
+  color: #ffffff;
+}
+
+.checkbox input:focus-visible + .checkbox-box {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+.checkbox--disabled,
+.checkbox input:disabled {
+  cursor: not-allowed;
+}
+
+.checkbox input:disabled + .checkbox-box {
+  opacity: 0.5;
+}
+
+.checkbox-row {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
 }
 
 label {
@@ -680,6 +741,11 @@ tr:last-child td {
   color: var(--severity-compliance-text);
 }
 
+.severity-chip--normal {
+  background: var(--severity-normal-bg);
+  color: var(--severity-normal-text);
+}
+
 .severity-chip--muted {
   background: var(--severity-muted-bg);
   color: var(--severity-muted-text);
@@ -1000,6 +1066,52 @@ tr:last-child td {
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
   border-top: 1px solid var(--color-border-200);
+}
+
+/* Barra flutuante de ações em lote (seleção de issues no Issue Tracker). */
+.selection-bar {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-6);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-white);
+  border: 1px solid var(--color-border-200);
+  border-radius: var(--radius-list-item);
+  padding: var(--space-3) var(--space-4);
+  box-shadow: var(--shadow-card);
+  z-index: 2;
+  max-width: min(90vw, 720px);
+}
+
+.selection-bar-count {
+  font: var(--font-label);
+  font-weight: 700;
+  color: var(--color-ink-900);
+  white-space: nowrap;
+}
+
+.selection-bar-message {
+  font: var(--font-label);
+  color: var(--color-gray-600);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selection-bar-archive {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.selection-bar-cancel {
+  background: transparent;
+  color: var(--color-gray-600);
+  font: var(--font-label);
+  padding: var(--space-2);
 }
 
 /* Indicador de carregamento padronizado (Loading) — CSS puro, sem dependência externa. */

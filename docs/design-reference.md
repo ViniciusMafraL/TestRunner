@@ -114,6 +114,11 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 - Usado em: Login (nome fixo), Reporter (todos os selects), TestRunForm (tipo/plataforma), e como base do `StatusPillSelect`.
 - Personalizável via `triggerClassName`, `renderValue` e `renderOption`.
 
+### `Checkbox` *(novo)*
+- Arquivo: `src/components/Checkbox/Checkbox.jsx`
+- O que é: substitui **todos** os `<input type="checkbox">` visíveis do app pelo mesmo motivo do `Dropdown` — a caixa nativa do navegador não segue os tokens do projeto (borda/fundo do SO, principalmente destoante no modo escuro). Mantém um `<input>` nativo escondido (`.checkbox`) por trás de uma caixa customizada (`.checkbox-box`, 16px, cantos arredondados) para preservar teclado/leitor de tela; marcado fica com fundo violeta + check branco. Sem `children` renderiza só a caixa (cabeçalhos de tabela); com `children`, vira um item clicável (`.checkbox-row`) com o rótulo ao lado.
+- Usado em: seleção em lote da Issue Tracker (checkbox do cabeçalho de grupo + de cada linha) e no `ColumnVisibilityMenu` (checklist de colunas).
+
 ### `StatusPill` / `StatusPillSelect` *(novo)*
 - Arquivo: `src/components/StatusPill/StatusPill.jsx`
 - O que é: pílula de status (fundo tingido + ponto colorido + rótulo). `StatusPillSelect` usa o `Dropdown` com o gatilho estilizado como pílula e opções com ponto colorido por status; `onChange` recebe o valor direto.
@@ -213,6 +218,7 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 | SideMenu | `src/components/SideMenu/SideMenu.jsx` |
 | PageHeader | `src/components/PageHeader/PageHeader.jsx` |
 | Dropdown | `src/components/Dropdown/Dropdown.jsx` |
+| Checkbox | `src/components/Checkbox/Checkbox.jsx` |
 | StatusPill / StatusPillSelect | `src/components/StatusPill/StatusPill.jsx` |
 | FieldIcons | `src/components/FieldIcons/FieldIcons.jsx` |
 | Avatar / AvatarWithLabel | `src/components/Avatar/Avatar.jsx` |

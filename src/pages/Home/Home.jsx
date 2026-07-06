@@ -6,10 +6,9 @@ import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
 import { StatusPill } from '../../components/StatusPill/StatusPill.jsx';
 import { AvatarWithLabel } from '../../components/Avatar/Avatar.jsx';
 
-const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance' };
+const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
 const COLUMN_WIDTHS = {
-  checkbox: 32,
   status: 120,
   severity: 110,
   foundBy: 150,
@@ -94,9 +93,6 @@ export function Home() {
           <table className="table-fixed">
             <thead>
               <tr>
-                <th style={{ width: COLUMN_WIDTHS.checkbox }}>
-                  <input type="checkbox" disabled aria-hidden="true" />
-                </th>
                 <th style={{ width: COLUMN_WIDTHS.status }}>Status</th>
                 <th>Title</th>
                 <th style={{ width: COLUMN_WIDTHS.severity }}>Severity</th>
@@ -108,9 +104,6 @@ export function Home() {
             <tbody>
               {summary.latestVersionOpenIssues.map((issue) => (
                 <tr key={issue.id} onClick={() => setSelectedIssue(issue)} style={{ cursor: 'pointer' }}>
-                  <td onClick={(event) => event.stopPropagation()}>
-                    <input type="checkbox" disabled aria-hidden="true" />
-                  </td>
                   <td>
                     <StatusPill status={issue.status} />
                   </td>
