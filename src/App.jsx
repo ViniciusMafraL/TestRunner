@@ -22,7 +22,8 @@ export function App() {
           }
         >
           <Route path="/home" element={<Home />} />
-          <Route path="/issue-tracker" element={<IssueTracker />} />
+          {/* :issueId opcional — /issue-tracker/BUG-001 abre a issue direto (link compartilhável). */}
+          <Route path="/issue-tracker/:issueId?" element={<IssueTracker />} />
           <Route path="/reporter" element={<Reporter />} />
           <Route path="/test-run" element={<TestRun />} />
           <Route path="/test-plan" element={<TestPlan />} />

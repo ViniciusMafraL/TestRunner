@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Status } from 'shared/enums.js';
 import { api } from '../../api/client.js';
 import { UNRECOGNIZED_STATUS_KEY } from 'shared/groupByStatus.js';
@@ -78,10 +79,13 @@ const LinkIcon = (
 
 export function IssueTracker() {
   const { canWrite } = useSession();
+  // A issue aberta vive na URL (/issue-tracker/:issueId), não em estado local,
+  // para que o link do modal seja compartilhável e o voltar do navegador o feche.
+  const { issueId } = useParams();
+  const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState({});
-  const [selectedIssue, setSelectedIssue] = useState(null);
   const [query, setQuery] = useState('');
   const { run, error } = useOptimisticUpdate();
   const { isVisible, toggle } = useColumnVisibility(
@@ -117,6 +121,16 @@ export function IssueTracker() {
     return null;
   }
 
+  const selectedIssue = issueId ? findIssue(issueId) : null;
+
+  function openIssue(issue) {
+    navigate(`/issue-tracker/${encodeURIComponent(issue.id)}`);
+  }
+
+  function closeIssue() {
+    navigate('/issue-tracker');
+  }
+
   function applyStatusLocally(id, status) {
     setGroups((previousGroups) => {
       const issues = previousGroups.flatMap((group) => group.issues);
@@ -144,7 +158,6 @@ export function IssueTracker() {
         issues: group.issues.map((issue) => (issue.id === updated.id ? updated : issue)),
       })),
     );
-    setSelectedIssue(updated);
     return updated;
   }
 
@@ -204,7 +217,7 @@ export function IssueTracker() {
     }
     if (field === 'title') {
       return (
-        <span onClick={() => setSelectedIssue(issue)} style={{ cursor: 'pointer' }}>
+        <span onClick={() => openIssue(issue)} style={{ cursor: 'pointer' }}>
           {issue.title}
         </span>
       );
@@ -233,6 +246,11 @@ export function IssueTracker() {
       {error ? (
         <p role="alert" style={{ color: 'var(--color-status-error)' }}>
           {error}
+        </p>
+      ) : null}
+      {issueId && !loading && !selectedIssue ? (
+        <p role="alert" style={{ color: 'var(--color-status-error)' }}>
+          Issue {issueId} não encontrada — o link pode estar desatualizado.
         </p>
       ) : null}
 
@@ -317,7 +335,7 @@ export function IssueTracker() {
 
       <IssueDetailModal
         issue={selectedIssue}
-        onClose={() => setSelectedIssue(null)}
+        onClose={closeIssue}
         onStatusChange={canWrite ? handleStatusChange : undefined}
         onIssueUpdate={canWrite ? handleIssueUpdate : undefined}
       />

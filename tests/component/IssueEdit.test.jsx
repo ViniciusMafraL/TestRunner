@@ -1,9 +1,20 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Route, Routes } from 'react-router-dom';
 import { IssueTracker } from '../../src/pages/IssueTracker/IssueTracker.jsx';
 import { resetStore } from '../../src/api/mock/store.js';
 import { renderWithProviders, seedSession } from '../testUtils.jsx';
+
+/* A issue aberta vive na URL, então o IssueTracker precisa da rota com :issueId. */
+function renderTracker(route = '/issue-tracker') {
+  return renderWithProviders(
+    <Routes>
+      <Route path="/issue-tracker/:issueId?" element={<IssueTracker />} />
+    </Routes>,
+    { route },
+  );
+}
 
 async function openIssueModal(title) {
   await screen.findByText(title);
@@ -18,7 +29,7 @@ describe('IssueDetailModal - edição de issue (componente)', () => {
 
   it('QA administrador edita title e severity pela janela de detalhes', async () => {
     seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
-    renderWithProviders(<IssueTracker />);
+    renderTracker();
 
     const dialog = await openIssueModal('Crash ao abrir o Hub em dispositivos Android');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Editar' }));
@@ -44,7 +55,7 @@ describe('IssueDetailModal - edição de issue (componente)', () => {
 
   it('valida Title obrigatório e permanece no modo de edição', async () => {
     seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
-    renderWithProviders(<IssueTracker />);
+    renderTracker();
 
     const dialog = await openIssueModal('Texto cortado no menu de configurações');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Editar' }));
@@ -58,7 +69,7 @@ describe('IssueDetailModal - edição de issue (componente)', () => {
 
   it('mostra o erro no modal e mantém a edição quando a gravação falha (BUG-002 simula 409)', async () => {
     seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
-    renderWithProviders(<IssueTracker />);
+    renderTracker();
 
     const dialog = await openIssueModal('Placar não atualiza em tempo real');
     await userEvent.click(within(dialog).getByRole('button', { name: 'Editar' }));
@@ -78,7 +89,7 @@ describe('IssueDetailModal - edição de issue (componente)', () => {
 
   it('convidado (somente leitura) não vê o botão Editar', async () => {
     seedSession({ kind: 'guest', displayName: 'Visitante', canWrite: false });
-    renderWithProviders(<IssueTracker />);
+    renderTracker();
 
     const dialog = await openIssueModal('Crash ao abrir o Hub em dispositivos Android');
     expect(within(dialog).queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument();
