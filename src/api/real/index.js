@@ -26,6 +26,10 @@ export function updateIssueStatus(id, status) {
   return request({ method: 'PATCH', url: `/issues/${id}/status`, data: { status } });
 }
 
+export function updateIssue(id, patch) {
+  return request({ method: 'PATCH', url: `/issues/${id}`, data: patch });
+}
+
 export function createIssue(payload) {
   return request({ method: 'POST', url: '/issues', data: payload });
 }

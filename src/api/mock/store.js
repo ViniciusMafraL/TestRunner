@@ -215,6 +215,24 @@ export function updateIssueStatusInStore(id, status) {
   return updated;
 }
 
+/**
+ * Edição de campos da issue (PATCH /issues/:id). Reusa o mesmo caso
+ * determinístico de conflito de gravação de updateIssueStatusInStore
+ * ("BUG-002"), para que testes tenham um cenário previsível de falha.
+ */
+export function updateIssueInStore(id, patch) {
+  if (id === 'BUG-002') {
+    const error = new Error('WRITE_CONFLICT');
+    error.code = 'WRITE_CONFLICT';
+    throw error;
+  }
+  const issue = getIssueById(id);
+  if (!issue) return null;
+  const updated = { ...issue, ...patch };
+  issues = issues.map((existing) => (existing.id === id ? updated : existing));
+  return updated;
+}
+
 export function listTestRuns() {
   return testRuns;
 }

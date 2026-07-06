@@ -15,6 +15,7 @@ export const api = {
   getHomeSummary: impl.getHomeSummary,
   getIssuesGroupedByStatus: impl.getIssuesGroupedByStatus,
   updateIssueStatus: impl.updateIssueStatus,
+  updateIssue: impl.updateIssue,
   createIssue: impl.createIssue,
   getTestRuns: impl.getTestRuns,
   createTestRun: impl.createTestRun,

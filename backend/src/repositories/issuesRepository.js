@@ -1,6 +1,6 @@
 import { StatusGroup } from 'shared/enums.js';
 import { findLatestVersion } from 'shared/version.js';
-import { validateIssuePayload } from 'shared/contracts.js';
+import { validateIssuePayload, validateIssueUpdatePayload } from 'shared/contracts.js';
 import { groupIssuesByStatus } from 'shared/groupByStatus.js';
 import { config } from '../config.js';
 import { readRange, appendRow, updateRow } from '../googleSheets.js';
@@ -110,6 +110,21 @@ export async function updateIssueStatus(id, status) {
     throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
   }
   const updated = { ...issue, status };
+  await updateRow(config.issuesGid, issue.rowNumber, issueToRow(updated));
+  return withoutRowNumber(updated);
+}
+
+export async function updateIssue(id, payload) {
+  const result = validateIssueUpdatePayload(payload);
+  if (!result.valid) {
+    throw new HttpError(422, result.error.code, result.error.message);
+  }
+  const issues = await listIssuesWithRowNumbers();
+  const issue = issues.find((entry) => entry.id === id);
+  if (!issue) {
+    throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
+  }
+  const updated = { ...issue, ...result.patch };
   await updateRow(config.issuesGid, issue.rowNumber, issueToRow(updated));
   return withoutRowNumber(updated);
 }

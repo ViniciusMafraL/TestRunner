@@ -131,6 +131,23 @@ export function IssueTracker() {
     });
   }
 
+  /**
+   * Edição de campos pela janela de detalhes (PATCH /issues/:id). Diferente do
+   * status, o save é explícito (formulário), então aguarda a persistência e só
+   * então aplica localmente — o modal trata o erro e mantém o modo de edição.
+   */
+  async function handleIssueUpdate(id, patch) {
+    const updated = await api.updateIssue(id, patch);
+    setGroups((previousGroups) =>
+      previousGroups.map((group) => ({
+        ...group,
+        issues: group.issues.map((issue) => (issue.id === updated.id ? updated : issue)),
+      })),
+    );
+    setSelectedIssue(updated);
+    return updated;
+  }
+
   function handleStatusChange(id, nextStatus) {
     const issue = findIssue(id);
     if (!issue) return;
@@ -302,6 +319,7 @@ export function IssueTracker() {
         issue={selectedIssue}
         onClose={() => setSelectedIssue(null)}
         onStatusChange={canWrite ? handleStatusChange : undefined}
+        onIssueUpdate={canWrite ? handleIssueUpdate : undefined}
       />
 
       <FloatingActionButton to="/reporter" label="New Report" />
