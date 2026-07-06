@@ -13,6 +13,7 @@ import {
 } from '../../utils/issueFields.js';
 import { useOptimisticUpdate } from '../../hooks/useOptimisticUpdate.js';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility.js';
+import { useLocalStorageState } from '../../hooks/useLocalStorageState.js';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { IssueDetailModal } from '../../components/IssueDetailModal/IssueDetailModal.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
@@ -85,7 +86,7 @@ export function IssueTracker() {
   const navigate = useNavigate();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [collapsed, setCollapsed] = useState({});
+  const [collapsed, setCollapsed] = useLocalStorageState('issueTracker.collapsedGroups.v1', {});
   const [query, setQuery] = useState('');
   const { run, error } = useOptimisticUpdate();
   const { isVisible, toggle } = useColumnVisibility(

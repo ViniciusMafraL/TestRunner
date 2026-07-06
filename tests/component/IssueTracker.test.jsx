@@ -66,6 +66,23 @@ describe('IssueTracker (componente)', () => {
     expect(screen.getAllByRole('columnheader', { name: 'ID' })[0]).toBeInTheDocument();
   });
 
+  it('mantém grupos colapsados após recarregar a página (persistência local)', async () => {
+    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    const { unmount } = renderWithProviders(<IssueTracker />);
+
+    await screen.findByText('Crash ao abrir o Hub em dispositivos Android');
+    await userEvent.click(screen.getByRole('button', { name: /Open/ }));
+    expect(screen.queryByText('Crash ao abrir o Hub em dispositivos Android')).not.toBeInTheDocument();
+
+    // Simula o recarregamento: desmonta e monta a tela de novo.
+    unmount();
+    renderWithProviders(<IssueTracker />);
+
+    await screen.findByText('Placar não atualiza em tempo real');
+    expect(screen.queryByText('Crash ao abrir o Hub em dispositivos Android')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Open/ })).toBeInTheDocument();
+  });
+
   it('exibe o botão flutuante "New Report" apontando para /reporter', async () => {
     seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
     renderWithProviders(<IssueTracker />);
