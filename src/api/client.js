@@ -16,6 +16,8 @@ export const api = {
   getIssuesGroupedByStatus: impl.getIssuesGroupedByStatus,
   updateIssueStatus: impl.updateIssueStatus,
   updateIssue: impl.updateIssue,
+  uploadIssueEvidence: impl.uploadIssueEvidence,
+  getIssueEvidence: impl.getIssueEvidence,
   createIssue: impl.createIssue,
   getTestRuns: impl.getTestRuns,
   createTestRun: impl.createTestRun,

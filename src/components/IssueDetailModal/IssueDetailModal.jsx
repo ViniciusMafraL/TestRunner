@@ -6,6 +6,7 @@ import { StatusPill, StatusPillSelect } from '../StatusPill/StatusPill.jsx';
 import { AvatarWithLabel } from '../Avatar/Avatar.jsx';
 import { FIELD_ICONS } from '../FieldIcons/FieldIcons.jsx';
 import { Dropdown } from '../Dropdown/Dropdown.jsx';
+import { EvidenceGallery } from '../EvidenceGallery/EvidenceGallery.jsx';
 
 const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
@@ -172,6 +173,8 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
               </div>
 
               {issue.description ? <p className="issue-detail-description">{issue.description}</p> : null}
+
+              <EvidenceGallery issue={issue} />
             </>
           )}
         </div>

@@ -20,6 +20,49 @@ export const ISSUE_DEFAULT_STATUS = 'Open';
  */
 export const ISSUE_EDITABLE_FIELDS = [...ISSUE_REQUIRED_FIELDS, ...ISSUE_OPTIONAL_FIELDS];
 
+/**
+ * Limites de evidências (POST /issues/:id/evidence) — fonte única usada pela
+ * UI (validação antes do envio), pelo mock e pelo backend (multer).
+ * 100 MB por arquivo: teto do túnel trycloudflare atual por request.
+ */
+export const EVIDENCE_MAX_FILES = 5;
+export const EVIDENCE_MAX_FILE_SIZE_MB = 100;
+export const EVIDENCE_ACCEPTED_MIME_PREFIXES = ['video/', 'image/'];
+
+/**
+ * Valida uma lista de arquivos de evidência ({ name, size, type }, o shape do
+ * File do browser). Retorna { valid } ou { valid: false, error } no mesmo
+ * formato dos demais validadores deste módulo.
+ */
+export function validateEvidenceFiles(files) {
+  const list = Array.from(files ?? []);
+  if (list.length === 0) {
+    return { valid: false, error: { code: 'VALIDATION_ERROR', message: 'Nenhum arquivo de evidência informado' } };
+  }
+  if (list.length > EVIDENCE_MAX_FILES) {
+    return {
+      valid: false,
+      error: { code: 'VALIDATION_ERROR', message: `No máximo ${EVIDENCE_MAX_FILES} arquivos de evidência por issue` },
+    };
+  }
+  for (const file of list) {
+    const type = String(file?.type ?? '');
+    if (!EVIDENCE_ACCEPTED_MIME_PREFIXES.some((prefix) => type.startsWith(prefix))) {
+      return {
+        valid: false,
+        error: { code: 'VALIDATION_ERROR', message: `Tipo de arquivo não aceito: ${file?.name ?? (type || 'desconhecido')} — apenas vídeos e imagens` },
+      };
+    }
+    if (Number(file?.size ?? 0) > EVIDENCE_MAX_FILE_SIZE_MB * 1024 * 1024) {
+      return {
+        valid: false,
+        error: { code: 'VALIDATION_ERROR', message: `${file?.name ?? 'Arquivo'} excede o limite de ${EVIDENCE_MAX_FILE_SIZE_MB} MB` },
+      };
+    }
+  }
+  return { valid: true };
+}
+
 export const TEST_RUN_REQUIRED_FIELDS = ['build', 'version', 'testType', 'responsible', 'platform'];
 export const TEST_RUN_DEFAULT_STATUS = 'Pendente';
 

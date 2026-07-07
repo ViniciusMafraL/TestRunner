@@ -34,6 +34,23 @@ export function createIssue(payload) {
   return request({ method: 'POST', url: '/issues', data: payload });
 }
 
+export function getIssueEvidence(id) {
+  return request({ method: 'GET', url: `/issues/${encodeURIComponent(id)}/evidence` });
+}
+
+export function uploadIssueEvidence(id, file, onProgress) {
+  const formData = new FormData();
+  formData.append('files', file);
+  return request({
+    method: 'POST',
+    url: `/issues/${encodeURIComponent(id)}/evidence`,
+    data: formData,
+    onUploadProgress: (event) => {
+      if (typeof onProgress === 'function' && event.total) onProgress(event.loaded / event.total);
+    },
+  });
+}
+
 export function getTestRuns() {
   return request({ method: 'GET', url: '/test-runs' });
 }

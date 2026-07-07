@@ -1068,6 +1068,128 @@ tr:last-child td {
   border-top: 1px solid var(--color-border-200);
 }
 
+/* Seletor de evidências do Reporter (EvidencePicker). */
+.evidence-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.evidence-picker-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.evidence-picker-hint {
+  font: var(--font-caption);
+  color: var(--color-gray-600);
+}
+
+.evidence-picker-error {
+  font: var(--font-label);
+  color: var(--color-status-error);
+  margin: 0;
+}
+
+.evidence-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.evidence-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px solid var(--color-border-200);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+}
+
+.evidence-thumb {
+  width: 48px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  flex-shrink: 0;
+}
+
+.evidence-thumb--empty {
+  display: inline-block;
+}
+
+.evidence-name {
+  flex: 1;
+  font: var(--font-label);
+  min-width: 0;
+}
+
+.evidence-size {
+  font: var(--font-caption);
+  color: var(--color-gray-600);
+  white-space: nowrap;
+}
+
+/* Pré-visualizador de evidências do Drive no modal de detalhes (EvidenceGallery). */
+.evidence-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.evidence-gallery-title {
+  font: var(--font-caption);
+  font-weight: 700;
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.evidence-video {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.evidence-video-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.evidence-video-frame {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.evidence-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--space-2);
+}
+
+.evidence-gallery-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: var(--radius-control);
+  background: var(--color-surface);
+  display: block;
+}
+
 /* Barra flutuante de ações em lote (seleção de issues no Issue Tracker). */
 .selection-bar {
   position: fixed;

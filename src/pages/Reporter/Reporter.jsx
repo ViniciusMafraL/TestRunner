@@ -5,6 +5,7 @@ import { useSession } from '../../auth/SessionContext.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
 import { FIELD_ICONS } from '../../components/FieldIcons/FieldIcons.jsx';
 import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
+import { EvidencePicker } from '../../components/EvidencePicker/EvidencePicker.jsx';
 
 /* Campos principais sempre visíveis; os demais ficam atrás de "Mais campos". */
 const PRIMARY_SELECTS = [
@@ -54,6 +55,9 @@ export function Reporter() {
   const [successMessage, setSuccessMessage] = useState(null);
   const [submitError, setSubmitError] = useState(null);
   const [showExtra, setShowExtra] = useState(false);
+  const [evidenceFiles, setEvidenceFiles] = useState([]);
+  // { index, total, percent } enquanto as evidências sobem; null fora disso.
+  const [uploadProgress, setUploadProgress] = useState(null);
 
   if (!canWrite) {
     return (
@@ -85,9 +89,45 @@ export function Reporter() {
 
     try {
       const issue = await api.createIssue(form);
-      setSuccessMessage(`Issue ${issue.id} criada com status ${issue.status}`);
+
+      // Evidências sobem uma a uma (limite de ~100 MB por request no túnel);
+      // falha de upload nunca desfaz a issue — só vira aviso (ver contrato).
+      let attachmentLink = null;
+      const failed = [];
+      for (const [index, file] of evidenceFiles.entries()) {
+        setUploadProgress({ index: index + 1, total: evidenceFiles.length, percent: 0 });
+        try {
+          const updated = await api.uploadIssueEvidence(issue.id, file, (fraction) => {
+            setUploadProgress({ index: index + 1, total: evidenceFiles.length, percent: Math.round(fraction * 100) });
+          });
+          attachmentLink = updated.attachment;
+        } catch {
+          failed.push(file.name);
+        }
+      }
+      setUploadProgress(null);
+
+      if (failed.length > 0) {
+        setSubmitError(
+          `Issue ${issue.id} criada, mas ${failed.length === 1 ? 'a evidência falhou' : `${failed.length} evidências falharam`}: ` +
+            `${failed.join(', ')} — anexe depois pelo Editar do Issue Tracker`,
+        );
+      } else if (attachmentLink) {
+        setSuccessMessage(
+          <>
+            Issue {issue.id} criada com status {issue.status} —{' '}
+            <a href={attachmentLink} target="_blank" rel="noreferrer">
+              evidências na pasta do Drive
+            </a>
+          </>,
+        );
+      } else {
+        setSuccessMessage(`Issue ${issue.id} criada com status ${issue.status}`);
+      }
       setForm(INITIAL_FORM);
+      setEvidenceFiles([]);
     } catch (error) {
+      setUploadProgress(null);
       setSubmitError(error.message ?? 'Não foi possível criar a issue');
     }
   }
@@ -149,6 +189,16 @@ export function Reporter() {
           <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
         ))}
 
+        <div className="field-row">
+          <span className="field-label">
+            {FIELD_ICONS.attachment}
+            Evidências
+          </span>
+          <div className="field-control">
+            <EvidencePicker files={evidenceFiles} onChange={setEvidenceFiles} disabled={uploadProgress !== null} />
+          </div>
+        </div>
+
         <button type="button" className="form-more-toggle" onClick={() => setShowExtra((previous) => !previous)}>
           <span aria-hidden="true">{showExtra ? '▾' : '▸'}</span>
           {showExtra ? 'Ocultar campos extras' : 'Mais campos (Tag, Keywords, Store, Attachment)'}
@@ -178,6 +228,11 @@ export function Reporter() {
         ) : null}
 
         <div className="form-footer">
+          {uploadProgress ? (
+            <span role="status" style={{ font: 'var(--font-label)', marginRight: 'auto' }}>
+              Enviando evidência {uploadProgress.index} de {uploadProgress.total} — {uploadProgress.percent}%
+            </span>
+          ) : null}
           {successMessage ? (
             <span style={{ font: 'var(--font-label)', color: 'var(--text-success)', marginRight: 'auto' }}>{successMessage}</span>
           ) : null}
@@ -186,8 +241,8 @@ export function Reporter() {
               {submitError}
             </span>
           ) : null}
-          <button type="submit" className="button-primary">
-            Enviar
+          <button type="submit" className="button-primary" disabled={uploadProgress !== null}>
+            {uploadProgress ? 'Enviando…' : 'Enviar'}
           </button>
         </div>
       </form>

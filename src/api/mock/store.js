@@ -2,6 +2,9 @@ let issues = [];
 let testRuns = [];
 let nextIssueSeq = 1;
 let nextTestRunSeq = 1;
+// Arquivos de evidência "enviados" por issue (id -> [{ name, type }]), para o
+// mock de GET /issues/:id/evidence espelhar o que o upload registrou.
+let evidenceFiles = {};
 
 function seedIssues() {
   return [
@@ -165,6 +168,7 @@ export function resetStore() {
   testRuns = seedTestRuns();
   nextIssueSeq = issues.length + 1;
   nextTestRunSeq = testRuns.length + 1;
+  evidenceFiles = {};
 }
 
 resetStore();
@@ -231,6 +235,26 @@ export function updateIssueInStore(id, patch) {
   const updated = { ...issue, ...patch };
   issues = issues.map((existing) => (existing.id === id ? updated : existing));
   return updated;
+}
+
+/**
+ * Simula o anexo de evidências (POST /issues/:id/evidence): grava no
+ * attachment o link fake da "pasta" da issue, como o backend real faz com o
+ * webViewLink do Drive.
+ */
+export function attachEvidenceLinkInStore(id, file) {
+  const issue = getIssueById(id);
+  if (!issue) return null;
+  const updated = { ...issue, attachment: `https://drive.google.com/drive/folders/mock-${id}` };
+  issues = issues.map((existing) => (existing.id === id ? updated : existing));
+  if (file) {
+    evidenceFiles = { ...evidenceFiles, [id]: [...(evidenceFiles[id] ?? []), { name: file.name, type: file.type }] };
+  }
+  return updated;
+}
+
+export function listEvidenceFilesInStore(id) {
+  return evidenceFiles[id] ?? [];
 }
 
 export function listTestRuns() {
