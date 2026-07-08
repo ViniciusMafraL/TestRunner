@@ -8,7 +8,27 @@ export const FoundBy = ['Carlos', 'Giovanni', 'Miguel', 'Karen', 'Vinicius'];
 
 export const Platform = ['Pc', 'Android', 'Web', 'IOS'];
 
-export const Keywords = ['Bug', 'Design', 'Incomplete', 'Legal', 'Monetization'];
+// Mesma lista e ordem do seletor "Key words" da planilha (multi-seleção lá e cá).
+export const Keywords = [
+  'Bug',
+  'Collision',
+  'Design',
+  'Feature',
+  'Game Design',
+  'Incomplete',
+  'Level Design',
+  'Sound',
+  'Suggestion',
+  'Text',
+  'Texture',
+  'UI',
+  'UX',
+  'Visuals',
+  'Crash',
+  'Legal',
+  'Performance',
+  'IA',
+];
 
 export const Store = ['Steam', 'Playstore', 'AppStore', 'Gameloft', 'Digital Virgo', 'Bemobi', 'Plug in digital'];
 

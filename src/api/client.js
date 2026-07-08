@@ -19,6 +19,7 @@ export const api = {
   uploadIssueEvidence: impl.uploadIssueEvidence,
   getIssueEvidence: impl.getIssueEvidence,
   createIssue: impl.createIssue,
+  getUsers: impl.getUsers,
   getTestRuns: impl.getTestRuns,
   createTestRun: impl.createTestRun,
   updateTestRunStatus: impl.updateTestRunStatus,

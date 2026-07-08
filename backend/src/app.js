@@ -8,6 +8,7 @@ import { authRouter } from './routes/auth.js';
 import { homeRouter } from './routes/home.js';
 import { issuesRouter } from './routes/issues.js';
 import { testRunsRouter } from './routes/testRuns.js';
+import { usersRouter } from './routes/users.js';
 
 export function createApp() {
   const app = express();
@@ -20,6 +21,7 @@ export function createApp() {
   app.use('/home', requireSession, homeRouter);
   app.use('/issues', requireSession, issuesRouter);
   app.use('/test-runs', requireSession, testRunsRouter);
+  app.use('/users', requireSession, usersRouter);
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {

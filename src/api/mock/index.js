@@ -9,3 +9,4 @@ export {
   getIssueEvidence,
 } from './issues.js';
 export { getTestRuns, createTestRun, updateTestRunStatus } from './testRuns.js';
+export { getUsers } from './users.js';

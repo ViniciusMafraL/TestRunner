@@ -1,22 +1,24 @@
 import { useState } from 'react';
-import { FoundBy, Keywords, Platform, Severity, Status, Store, Tag } from 'shared/enums.js';
+import { Keywords, Platform, Severity, Status, Store, Tag } from 'shared/enums.js';
 import { ISSUE_EDITABLE_FIELDS } from 'shared/contracts.js';
 import { useSession } from '../../auth/SessionContext.jsx';
+import { useQaUsers } from '../../hooks/useQaUsers.js';
 import { StatusPill, StatusPillSelect } from '../StatusPill/StatusPill.jsx';
-import { AvatarWithLabel } from '../Avatar/Avatar.jsx';
+import { AvatarGroup } from '../Avatar/Avatar.jsx';
 import { FIELD_ICONS } from '../FieldIcons/FieldIcons.jsx';
 import { Dropdown } from '../Dropdown/Dropdown.jsx';
+import { MultiSelectDropdown } from '../Dropdown/MultiSelectDropdown.jsx';
 import { EvidenceGallery } from '../EvidenceGallery/EvidenceGallery.jsx';
+import { KeywordChips } from '../KeywordChips/KeywordChips.jsx';
 
 const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
-/* Mesmos seletores de valores fixos do Reporter (ver contracts/api.md). */
+/* Mesmos seletores de valores fixos do Reporter (ver contracts/api.md).
+   Found By e Keywords ficam fora: são multi-seleção. */
 const EDIT_SELECTS = [
   { name: 'severity', label: 'Severity', options: Severity },
   { name: 'tag', label: 'Tag', options: Tag },
-  { name: 'foundBy', label: 'Found By', options: FoundBy },
   { name: 'platform', label: 'Platform', options: Platform },
-  { name: 'keywords', label: 'Keywords', options: Keywords },
   { name: 'store', label: 'Store', options: Store },
 ];
 
@@ -47,6 +49,7 @@ function buildForm(issue) {
 
 function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
   const { canWrite } = useSession();
+  const qaUsers = useQaUsers();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(() => buildForm(issue));
   const [fieldErrors, setFieldErrors] = useState({});
@@ -203,6 +206,36 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
                 ) : null}
               </div>
             </div>
+            <div className="field-row">
+              <label className="field-label" htmlFor="edit-foundBy">
+                {FIELD_ICONS.foundBy}
+                Found By
+              </label>
+              <div className="field-control">
+                <MultiSelectDropdown
+                  id="edit-foundBy"
+                  ariaLabel="Found By"
+                  value={form.foundBy}
+                  options={qaUsers}
+                  onChange={(next) => updateField('foundBy', next)}
+                />
+              </div>
+            </div>
+            <div className="field-row">
+              <label className="field-label" htmlFor="edit-keywords">
+                {FIELD_ICONS.keywords}
+                Keywords
+              </label>
+              <div className="field-control">
+                <MultiSelectDropdown
+                  id="edit-keywords"
+                  ariaLabel="Keywords"
+                  value={form.keywords}
+                  options={Keywords}
+                  onChange={(next) => updateField('keywords', next)}
+                />
+              </div>
+            </div>
             {EDIT_SELECTS.map((field) => (
               <div key={field.name} className="field-row">
                 <label className="field-label" htmlFor={`edit-${field.name}`}>
@@ -255,7 +288,7 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
         ) : (
           <>
             <FieldRow icon={FIELD_ICONS.foundBy} label="Found By">
-              {issue.foundBy ? <AvatarWithLabel name={issue.foundBy} /> : <span className="field-value--empty">—</span>}
+              {issue.foundBy ? <AvatarGroup names={issue.foundBy} /> : <span className="field-value--empty">—</span>}
             </FieldRow>
             <FieldRow icon={FIELD_ICONS.version} label="Version">
               {issue.version ? <span className="cell-mono">{issue.version}</span> : <span className="field-value--empty">—</span>}
@@ -264,7 +297,7 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
               <PlainValue value={issue.platform} />
             </FieldRow>
             <FieldRow icon={FIELD_ICONS.keywords} label="Keywords">
-              {issue.keywords ? <span className="keyword-chip">{issue.keywords}</span> : <span className="field-value--empty">—</span>}
+              {issue.keywords ? <KeywordChips value={issue.keywords} /> : <span className="field-value--empty">—</span>}
             </FieldRow>
             <FieldRow icon={FIELD_ICONS.store} label="Store">
               <PlainValue value={issue.store} />

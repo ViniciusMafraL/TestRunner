@@ -782,6 +782,16 @@ tr:last-child td {
   gap: var(--space-1);
   color: var(--link-color);
   text-decoration: none;
+  /* Links longos (Drive) não podem estourar a célula/painel: corta com “…”. */
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.attachment-link .table-cell-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .attachment-link:hover {
@@ -954,6 +964,24 @@ tr:last-child td {
 .field-value {
   font: var(--font-body);
   min-width: 0;
+  /* Texto sem espaços (URLs coladas) quebra em vez de alargar o painel. */
+  overflow-wrap: anywhere;
+}
+
+/* Keywords múltiplas: um chip por palavra, quebrando linha. */
+.keyword-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+}
+
+/* Vários responsáveis (Found By múltiplo) lado a lado, quebrando linha. */
+.avatar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
 }
 
 .field-value--empty {

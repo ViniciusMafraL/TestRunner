@@ -51,6 +51,10 @@ export function uploadIssueEvidence(id, file, onProgress) {
   });
 }
 
+export function getUsers() {
+  return request({ method: 'GET', url: '/users' });
+}
+
 export function getTestRuns() {
   return request({ method: 'GET', url: '/test-runs' });
 }

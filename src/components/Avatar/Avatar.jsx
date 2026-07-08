@@ -31,3 +31,20 @@ export function AvatarWithLabel({ name }) {
     </span>
   );
 }
+
+/** Found By múltiplo: "Nome A, Nome B" (formato da planilha) vira uma fileira de avatares. */
+export function AvatarGroup({ names }) {
+  const list = String(names ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+  if (list.length === 0) return <span>—</span>;
+  if (list.length === 1) return <AvatarWithLabel name={list[0]} />;
+  return (
+    <span className="avatar-group">
+      {list.map((name) => (
+        <AvatarWithLabel key={name} name={name} />
+      ))}
+    </span>
+  );
+}

@@ -18,9 +18,10 @@ import { useSession } from '../../auth/SessionContext.jsx';
 import { IssueDetailModal } from '../../components/IssueDetailModal/IssueDetailModal.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
 import { StatusPill, StatusPillSelect } from '../../components/StatusPill/StatusPill.jsx';
-import { AvatarWithLabel } from '../../components/Avatar/Avatar.jsx';
+import { AvatarGroup } from '../../components/Avatar/Avatar.jsx';
 import { Loading } from '../../components/Loading/Loading.jsx';
 import { ColumnVisibilityMenu } from '../../components/ColumnVisibilityMenu/ColumnVisibilityMenu.jsx';
+import { KeywordChips } from '../../components/KeywordChips/KeywordChips.jsx';
 import { FloatingActionButton } from '../../components/FloatingActionButton/FloatingActionButton.jsx';
 import { SelectionActionsBar } from '../../components/SelectionActionsBar/SelectionActionsBar.jsx';
 import { Checkbox } from '../../components/Checkbox/Checkbox.jsx';
@@ -302,7 +303,7 @@ export function IssueTracker() {
       );
     }
     if (field === 'keywords') {
-      return issue.keywords ? <span className="keyword-chip">{issue.keywords}</span> : '';
+      return issue.keywords ? <KeywordChips value={issue.keywords} /> : '';
     }
     if (field === 'tag') {
       return issue.tag ? <span className="tag-chip">{issue.tag}</span> : '';
@@ -322,7 +323,7 @@ export function IssueTracker() {
       );
     }
     if (field === 'foundBy') {
-      return <AvatarWithLabel name={issue.foundBy} />;
+      return <AvatarGroup names={issue.foundBy} />;
     }
     if (field === 'title') {
       return (

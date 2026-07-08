@@ -1,22 +1,24 @@
 import { useState } from 'react';
-import { Severity, Tag, FoundBy, Platform, Keywords, Store } from 'shared/enums.js';
+import { Severity, Tag, Platform, Keywords, Store } from 'shared/enums.js';
 import { api } from '../../api/client.js';
 import { useSession } from '../../auth/SessionContext.jsx';
+import { useQaUsers } from '../../hooks/useQaUsers.js';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
 import { FIELD_ICONS } from '../../components/FieldIcons/FieldIcons.jsx';
 import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
+import { MultiSelectDropdown } from '../../components/Dropdown/MultiSelectDropdown.jsx';
 import { EvidencePicker } from '../../components/EvidencePicker/EvidencePicker.jsx';
 
-/* Campos principais sempre visíveis; os demais ficam atrás de "Mais campos". */
+/* Campos principais sempre visíveis; os demais ficam atrás de "Mais campos".
+   Found By fica fora desta lista: é multi-seleção com os QAs registrados. */
 const PRIMARY_SELECTS = [
   { name: 'severity', label: 'Severity', options: Severity },
-  { name: 'foundBy', label: 'Found By', options: FoundBy },
   { name: 'platform', label: 'Platform', options: Platform },
 ];
 
+/* Keywords fica fora desta lista: é multi-seleção, como na planilha. */
 const EXTRA_SELECTS = [
   { name: 'tag', label: 'Tag', options: Tag },
-  { name: 'keywords', label: 'Keywords', options: Keywords },
   { name: 'store', label: 'Store', options: Store },
 ];
 
@@ -50,6 +52,7 @@ function SelectRow({ field, value, onChange }) {
 
 export function Reporter() {
   const { canWrite } = useSession();
+  const qaUsers = useQaUsers();
   const [form, setForm] = useState(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState(null);
@@ -190,6 +193,22 @@ export function Reporter() {
         ))}
 
         <div className="field-row">
+          <label className="field-label" htmlFor="field-foundBy">
+            {FIELD_ICONS.foundBy}
+            Found By
+          </label>
+          <div className="field-control">
+            <MultiSelectDropdown
+              id="field-foundBy"
+              ariaLabel="Found By"
+              value={form.foundBy}
+              options={qaUsers}
+              onChange={(next) => updateField('foundBy', next)}
+            />
+          </div>
+        </div>
+
+        <div className="field-row">
           <span className="field-label">
             {FIELD_ICONS.attachment}
             Evidências
@@ -209,6 +228,21 @@ export function Reporter() {
             {EXTRA_SELECTS.map((field) => (
               <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
             ))}
+            <div className="field-row">
+              <label className="field-label" htmlFor="field-keywords">
+                {FIELD_ICONS.keywords}
+                Keywords
+              </label>
+              <div className="field-control">
+                <MultiSelectDropdown
+                  id="field-keywords"
+                  ariaLabel="Keywords"
+                  value={form.keywords}
+                  options={Keywords}
+                  onChange={(next) => updateField('keywords', next)}
+                />
+              </div>
+            </div>
             <div className="field-row">
               <label className="field-label" htmlFor="field-attachment">
                 {FIELD_ICONS.attachment}

@@ -4,7 +4,7 @@ import { IssueDetailModal } from '../../components/IssueDetailModal/IssueDetailM
 import { Loading } from '../../components/Loading/Loading.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
 import { StatusPill } from '../../components/StatusPill/StatusPill.jsx';
-import { AvatarWithLabel } from '../../components/Avatar/Avatar.jsx';
+import { AvatarGroup } from '../../components/Avatar/Avatar.jsx';
 
 const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
@@ -116,7 +116,7 @@ export function Home() {
                     )}
                   </td>
                   <td className="table-cell-ellipsis">
-                    <AvatarWithLabel name={issue.foundBy} />
+                    <AvatarGroup names={issue.foundBy} />
                   </td>
                   <td className="table-cell-ellipsis">
                     <span className="cell-mono">{issue.version}</span>

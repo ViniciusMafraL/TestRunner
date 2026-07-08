@@ -5,6 +5,27 @@ function defaultLabel(option) {
 }
 
 /**
+ * Posição do popup respeitando a viewport: perto da borda de baixo o menu
+ * abre para cima, e a altura é limitada ao espaço disponível (com margem)
+ * para a lista rolar dentro do popup em vez de estourar a página.
+ */
+export function computePopupStyle(rect) {
+  const margin = 12;
+  const spaceBelow = window.innerHeight - rect.bottom - margin;
+  const spaceAbove = rect.top - margin;
+  const openUp = spaceBelow < 180 && spaceAbove > spaceBelow;
+  const maxHeight = Math.min(260, Math.max(120, openUp ? spaceAbove : spaceBelow));
+  const minWidth = Math.max(rect.width, 140);
+  return {
+    position: 'fixed',
+    left: Math.max(margin, Math.min(rect.left, window.innerWidth - margin - minWidth)),
+    minWidth,
+    maxHeight,
+    ...(openUp ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }),
+  };
+}
+
+/**
  * Dropdown próprio do design system — substitui o <select> nativo para que o
  * popup siga os tokens (inclusive no modo escuro). Padrão ARIA de combobox
  * somente-seleção: botão gatilho + listbox; setas/Enter/Escape no teclado.
@@ -26,7 +47,7 @@ export function Dropdown({ id, ariaLabel, value, options, onChange, renderOption
 
   function openMenu() {
     const rect = triggerRef.current.getBoundingClientRect();
-    setMenuStyle({ position: 'fixed', top: rect.bottom + 4, left: rect.left, minWidth: Math.max(rect.width, 140) });
+    setMenuStyle(computePopupStyle(rect));
     const currentIndex = options.indexOf(value);
     setHighlighted(currentIndex >= 0 ? currentIndex : 0);
     setOpen(true);
