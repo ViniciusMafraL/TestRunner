@@ -5,12 +5,14 @@ import { Login } from '../../src/pages/Login/Login.jsx';
 import { renderWithProviders } from '../testUtils.jsx';
 
 describe('Login (componente)', () => {
-  it('entra com um login fixo válido e não mostra erro', async () => {
+  it('entra com o Google (simulado no mock) e ganha sessão com escrita, papel e token', async () => {
     renderWithProviders(<Login />);
-    await userEvent.click(screen.getByRole('button', { name: 'Entrar' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Entrar com Google' }));
     await waitFor(() => {
       expect(localStorage.getItem('workflow_session')).toContain('"canWrite":true');
     });
+    expect(localStorage.getItem('workflow_session')).toContain('"role":"admin"');
+    expect(localStorage.getItem('workflow_session')).toContain('"token"');
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 

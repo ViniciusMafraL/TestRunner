@@ -3,6 +3,7 @@ import cors from 'cors';
 import multer from 'multer';
 import { EVIDENCE_MAX_FILE_SIZE_MB } from 'shared/contracts.js';
 import { config } from './config.js';
+import { requireSession } from './authMiddleware.js';
 import { authRouter } from './routes/auth.js';
 import { homeRouter } from './routes/home.js';
 import { issuesRouter } from './routes/issues.js';
@@ -14,9 +15,11 @@ export function createApp() {
   app.use(express.json());
 
   app.use('/auth', authRouter);
-  app.use('/home', homeRouter);
-  app.use('/issues', issuesRouter);
-  app.use('/test-runs', testRunsRouter);
+  // Todas as rotas de dados exigem sessão (token do login); as de escrita
+  // exigem também papel com escrita — ver authMiddleware.js.
+  app.use('/home', requireSession, homeRouter);
+  app.use('/issues', requireSession, issuesRouter);
+  app.use('/test-runs', requireSession, testRunsRouter);
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {

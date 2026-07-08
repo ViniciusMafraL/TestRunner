@@ -7,6 +7,7 @@ import { getIssuesGroupedByStatus, createIssue, updateIssueStatus, updateIssue, 
 import { ensureFolder, findFolder, listFilesInFolder, shareFolderByLink, uploadFileToFolder } from '../googleDrive.js';
 import { config } from '../config.js';
 import { HttpError } from '../HttpError.js';
+import { requireWrite } from '../authMiddleware.js';
 import { asyncHandler } from '../asyncHandler.js';
 
 // Multer grava os uploads em arquivos temporários (não em memória) para não
@@ -27,6 +28,7 @@ issuesRouter.get(
 
 issuesRouter.post(
   '/',
+  requireWrite,
   asyncHandler(async (req, res) => {
     const issue = await createIssue(req.body ?? {});
     res.status(201).json(issue);
@@ -35,6 +37,7 @@ issuesRouter.post(
 
 issuesRouter.patch(
   '/:id/status',
+  requireWrite,
   asyncHandler(async (req, res) => {
     const issue = await updateIssueStatus(req.params.id, req.body?.status);
     res.json(issue);
@@ -43,6 +46,7 @@ issuesRouter.patch(
 
 issuesRouter.patch(
   '/:id',
+  requireWrite,
   asyncHandler(async (req, res) => {
     const issue = await updateIssue(req.params.id, req.body ?? {});
     res.json(issue);
@@ -79,6 +83,7 @@ issuesRouter.get(
 
 issuesRouter.post(
   '/:id/evidence',
+  requireWrite,
   evidenceUpload.array('files', EVIDENCE_MAX_FILES),
   asyncHandler(async (req, res) => {
     const files = req.files ?? [];

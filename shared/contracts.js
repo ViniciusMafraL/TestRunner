@@ -1,5 +1,3 @@
-import { FoundBy } from './enums.js';
-
 export const ISSUE_REQUIRED_FIELDS = ['title', 'version'];
 export const ISSUE_OPTIONAL_FIELDS = [
   'severity',
@@ -107,15 +105,30 @@ export function validateTestRunPayload(payload) {
   return { valid: true };
 }
 
+/**
+ * Papéis do sistema (aba da planilha separada de usuários) e o que cada um
+ * pode: admin/qa escrevem; viewer e convidado só leem. O papel de um e-mail é
+ * editado direto na planilha de usuários — sem deploy.
+ */
+export const USER_ROLES = ['admin', 'qa', 'viewer'];
+export const WRITE_ROLES = ['admin', 'qa'];
+
+export function roleCanWrite(role) {
+  return WRITE_ROLES.includes(role);
+}
+
 export function validateLoginPayload(payload) {
-  if (!payload || typeof payload.name !== 'string' || payload.name.trim() === '') {
-    return { valid: false, error: { code: 'VALIDATION_ERROR', message: 'Nome é obrigatório' } };
+  if (payload?.type === 'google') {
+    if (typeof payload.credential !== 'string' || payload.credential.trim() === '') {
+      return { valid: false, error: { code: 'VALIDATION_ERROR', message: 'Credencial do Google ausente' } };
+    }
+    return { valid: true };
   }
-  if (payload.type === 'fixed' && !FoundBy.includes(payload.name)) {
-    return { valid: false, error: { code: 'INVALID_LOGIN', message: 'Usuário não reconhecido' } };
+  if (payload?.type === 'guest') {
+    if (typeof payload.name !== 'string' || payload.name.trim() === '') {
+      return { valid: false, error: { code: 'VALIDATION_ERROR', message: 'Nome é obrigatório' } };
+    }
+    return { valid: true };
   }
-  if (payload.type !== 'fixed' && payload.type !== 'guest') {
-    return { valid: false, error: { code: 'VALIDATION_ERROR', message: 'Tipo de login inválido' } };
-  }
-  return { valid: true };
+  return { valid: false, error: { code: 'VALIDATION_ERROR', message: 'Tipo de login inválido' } };
 }

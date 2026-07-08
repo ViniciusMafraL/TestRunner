@@ -12,8 +12,8 @@ export function SessionProvider({ children }) {
       session,
       isAuthenticated: session !== null,
       canWrite: session?.canWrite ?? false,
-      async loginFixed(name) {
-        const { session: newSession } = await api.login({ type: 'fixed', name });
+      async loginGoogle(credential) {
+        const { session: newSession } = await api.login({ type: 'google', credential });
         writeStoredSession(newSession);
         setSession(newSession);
       },

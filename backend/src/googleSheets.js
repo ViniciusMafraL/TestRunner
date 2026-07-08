@@ -13,34 +13,38 @@ function getSheetsClient() {
 
 const tabTitleCache = new Map();
 
-export async function getTabTitle(gid) {
-  if (tabTitleCache.has(gid)) return tabTitleCache.get(gid);
+// Todas as funções aceitam um spreadsheetId opcional (padrão: a planilha de
+// issues/test runs). A planilha separada de usuários (GOOGLE_USERS_SHEET_ID)
+// usa as mesmas primitivas passando o id dela.
+export async function getTabTitle(gid, spreadsheetId = config.spreadsheetId) {
+  const cacheKey = `${spreadsheetId}:${gid}`;
+  if (tabTitleCache.has(cacheKey)) return tabTitleCache.get(cacheKey);
   const sheets = getSheetsClient();
   const { data } = await sheets.spreadsheets.get({
-    spreadsheetId: config.spreadsheetId,
+    spreadsheetId,
     fields: 'sheets.properties',
   });
   const sheet = data.sheets.find((entry) => entry.properties.sheetId === gid);
-  if (!sheet) throw new Error(`Aba com gid=${gid} não encontrada na planilha`);
-  tabTitleCache.set(gid, sheet.properties.title);
+  if (!sheet) throw new Error(`Aba com gid=${gid} não encontrada na planilha ${spreadsheetId}`);
+  tabTitleCache.set(cacheKey, sheet.properties.title);
   return sheet.properties.title;
 }
 
-export async function readRange(gid, a1Range) {
+export async function readRange(gid, a1Range, spreadsheetId = config.spreadsheetId) {
   const sheets = getSheetsClient();
-  const title = await getTabTitle(gid);
+  const title = await getTabTitle(gid, spreadsheetId);
   const { data } = await sheets.spreadsheets.values.get({
-    spreadsheetId: config.spreadsheetId,
+    spreadsheetId,
     range: `'${title}'!${a1Range}`,
   });
   return data.values ?? [];
 }
 
-export async function appendRow(gid, rowValues) {
+export async function appendRow(gid, rowValues, spreadsheetId = config.spreadsheetId) {
   const sheets = getSheetsClient();
-  const title = await getTabTitle(gid);
+  const title = await getTabTitle(gid, spreadsheetId);
   await sheets.spreadsheets.values.append({
-    spreadsheetId: config.spreadsheetId,
+    spreadsheetId,
     range: `'${title}'!A:A`,
     valueInputOption: 'RAW',
     insertDataOption: 'INSERT_ROWS',
@@ -59,12 +63,12 @@ function columnLetter(count) {
   return letter;
 }
 
-export async function updateRow(gid, rowNumber, rowValues) {
+export async function updateRow(gid, rowNumber, rowValues, spreadsheetId = config.spreadsheetId) {
   const sheets = getSheetsClient();
-  const title = await getTabTitle(gid);
+  const title = await getTabTitle(gid, spreadsheetId);
   const lastColumn = columnLetter(rowValues.length);
   await sheets.spreadsheets.values.update({
-    spreadsheetId: config.spreadsheetId,
+    spreadsheetId,
     range: `'${title}'!A${rowNumber}:${lastColumn}${rowNumber}`,
     valueInputOption: 'RAW',
     requestBody: { values: [rowValues] },

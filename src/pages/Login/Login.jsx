@@ -1,33 +1,76 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { FoundBy } from 'shared/enums.js';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
 
+const GSI_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+
 export function Login() {
-  const { isAuthenticated, loginFixed, loginGuest } = useSession();
+  const { isAuthenticated, loginGoogle, loginGuest } = useSession();
   const navigate = useNavigate();
-  const [fixedName, setFixedName] = useState(FoundBy[0]);
+  const [mockName, setMockName] = useState(FoundBy[0]);
   const [guestName, setGuestName] = useState('');
   const [error, setError] = useState(null);
   const [pending, setPending] = useState(false);
+  const googleButtonRef = useRef(null);
+
+  const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const useRealGoogle = import.meta.env.VITE_API_MODE === 'real' && Boolean(clientId);
+
+  async function handleGoogleCredential(credential) {
+    setError(null);
+    setPending(true);
+    try {
+      await loginGoogle(credential);
+      navigate('/home', { replace: true });
+    } catch (err) {
+      setError(err.message ?? 'Não foi possível entrar com o Google');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  // Botão oficial do Google Identity Services (só no modo real): carrega o
+  // script uma vez e renderiza o botão no div de destino.
+  useEffect(() => {
+    if (!useRealGoogle) return undefined;
+    let cancelled = false;
+
+    function renderButton() {
+      if (cancelled || !window.google?.accounts?.id || !googleButtonRef.current) return;
+      window.google.accounts.id.initialize({
+        client_id: clientId,
+        callback: (response) => handleGoogleCredential(response.credential),
+      });
+      window.google.accounts.id.renderButton(googleButtonRef.current, { theme: 'outline', size: 'large', width: 312 });
+    }
+
+    if (window.google?.accounts?.id) {
+      renderButton();
+    } else {
+      let script = document.querySelector(`script[src="${GSI_SCRIPT_SRC}"]`);
+      if (!script) {
+        script = document.createElement('script');
+        script.src = GSI_SCRIPT_SRC;
+        script.async = true;
+        document.head.appendChild(script);
+      }
+      script.addEventListener('load', renderButton);
+    }
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useRealGoogle, clientId]);
 
   if (isAuthenticated) {
     return <Navigate to="/home" replace />;
   }
 
-  async function handleFixedLogin(event) {
+  async function handleMockGoogleLogin(event) {
     event.preventDefault();
-    setError(null);
-    setPending(true);
-    try {
-      await loginFixed(fixedName);
-      navigate('/home', { replace: true });
-    } catch (err) {
-      setError(err.message ?? 'Não foi possível entrar');
-    } finally {
-      setPending(false);
-    }
+    await handleGoogleCredential(`mock:${mockName}`);
   }
 
   async function handleGuestLogin(event) {
@@ -53,15 +96,22 @@ export function Login() {
       <div className="card" style={{ width: 360, display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
         <h1 style={{ font: 'var(--font-display)' }}>✦HermitCrab</h1>
 
-        <form onSubmit={handleFixedLogin} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-          <label htmlFor="fixed-name" style={{ font: 'var(--font-label)' }}>
-            Entrar como membro da equipe
-          </label>
-          <Dropdown id="fixed-name" value={fixedName} options={FoundBy} onChange={setFixedName} />
-          <button type="submit" className="button-primary" disabled={pending}>
-            Entrar
-          </button>
-        </form>
+        {useRealGoogle ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <span style={{ font: 'var(--font-label)' }}>Entrar com a conta do Workspace</span>
+            <div ref={googleButtonRef} />
+          </div>
+        ) : (
+          <form onSubmit={handleMockGoogleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+            <label htmlFor="mock-name" style={{ font: 'var(--font-label)' }}>
+              Entrar com Google (simulado no modo mock)
+            </label>
+            <Dropdown id="mock-name" value={mockName} options={FoundBy} onChange={setMockName} />
+            <button type="submit" className="button-primary" disabled={pending}>
+              Entrar com Google
+            </button>
+          </form>
+        )}
 
         <form onSubmit={handleGuestLogin} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
           <label htmlFor="guest-name" style={{ font: 'var(--font-label)' }}>
