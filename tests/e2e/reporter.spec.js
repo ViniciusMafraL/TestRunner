@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.describe('User Story 4 - Registro de nova issue via Reporter', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
-    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await page.getByRole('button', { name: 'Entrar com Google' }).click();
     await page.getByRole('link', { name: 'Report', exact: true }).click();
   });
 

@@ -824,6 +824,62 @@ tr:last-child td {
   gap: var(--space-2);
 }
 
+.avatar--overflow {
+  background: var(--color-surface);
+  color: var(--color-gray-600);
+  font-weight: 700;
+}
+
+/* Pilha de avatares sobrepostos (Found By múltiplo) — estilo ClickUp: só as
+   miniaturas, sem texto; o nome aparece no tooltip ao passar o mouse/focar. */
+.avatar-stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.avatar-stack-item {
+  position: relative;
+  display: inline-flex;
+  margin-left: -8px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-white);
+}
+
+.avatar-stack-item:first-child {
+  margin-left: 0;
+}
+
+.avatar-stack-item:hover,
+.avatar-stack-item:focus-visible {
+  z-index: 1;
+  outline: none;
+}
+
+.avatar-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(24, 24, 27, 0.92);
+  color: #ffffff;
+  font: var(--font-caption);
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 4px 9px;
+  border-radius: var(--radius-chip);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.avatar-stack-item:hover .avatar-tooltip,
+.avatar-stack-item:focus-visible .avatar-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* Tabs segmentadas (ex.: seções do Issue Tracker) */
 .segmented-tabs {
   display: flex;
@@ -973,14 +1029,6 @@ tr:last-child td {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  flex-wrap: wrap;
-}
-
-/* Vários responsáveis (Found By múltiplo) lado a lado, quebrando linha. */
-.avatar-group {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
   flex-wrap: wrap;
 }
 

@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.describe('User Story 2 - Visão geral na Home', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
-    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await page.getByRole('button', { name: 'Entrar com Google' }).click();
   });
 
   test('mostra os 3 contadores', async ({ page }) => {

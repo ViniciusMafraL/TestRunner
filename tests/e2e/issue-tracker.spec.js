@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test.describe('User Story 3 - Gestão de status no Issue Tracker', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/login');
-    await page.getByRole('button', { name: 'Entrar', exact: true }).click();
+    await page.getByRole('button', { name: 'Entrar com Google' }).click();
     await page.getByRole('link', { name: 'Issue Tracker' }).click();
   });
 

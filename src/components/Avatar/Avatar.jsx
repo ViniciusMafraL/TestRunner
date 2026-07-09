@@ -16,7 +16,7 @@ function initialsFor(name) {
 
 export function Avatar({ name }) {
   return (
-    <span className="avatar" style={{ background: colorFor(name) }} title={name} aria-hidden="true">
+    <span className="avatar" style={{ background: colorFor(name) }} aria-hidden="true">
       {initialsFor(name)}
     </span>
   );
@@ -32,19 +32,44 @@ export function AvatarWithLabel({ name }) {
   );
 }
 
-/** Found By múltiplo: "Nome A, Nome B" (formato da planilha) vira uma fileira de avatares. */
+const MAX_STACK_AVATARS = 3;
+
+/**
+ * Found By múltiplo: pilha de avatares sobrepostos (estilo ClickUp) em vez de
+ * nome por extenso — passar o mouse ou focar (Tab) revela o nome num tooltip.
+ * Além de MAX_STACK_AVATARS, os excedentes viram um badge "+N" com o resto
+ * dos nomes no próprio tooltip.
+ */
 export function AvatarGroup({ names }) {
   const list = String(names ?? '')
     .split(',')
     .map((name) => name.trim())
     .filter(Boolean);
-  if (list.length === 0) return <span>—</span>;
-  if (list.length === 1) return <AvatarWithLabel name={list[0]} />;
+  if (list.length === 0) return <span className="field-value--empty">—</span>;
+
+  const visible = list.slice(0, MAX_STACK_AVATARS);
+  const overflow = list.slice(MAX_STACK_AVATARS);
+
   return (
-    <span className="avatar-group">
-      {list.map((name) => (
-        <AvatarWithLabel key={name} name={name} />
+    <span className="avatar-stack">
+      {visible.map((name) => (
+        <span key={name} className="avatar-stack-item" tabIndex={0}>
+          <Avatar name={name} />
+          <span className="avatar-tooltip" role="tooltip">
+            {name}
+          </span>
+        </span>
       ))}
+      {overflow.length > 0 ? (
+        <span className="avatar-stack-item" tabIndex={0}>
+          <span className="avatar avatar--overflow" aria-hidden="true">
+            +{overflow.length}
+          </span>
+          <span className="avatar-tooltip" role="tooltip">
+            {overflow.join(', ')}
+          </span>
+        </span>
+      ) : null}
     </span>
   );
 }

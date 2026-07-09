@@ -133,7 +133,9 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 ## Parte 2 — Tela Login
 
 - Rota: `/login` · Arquivo: `src/pages/Login/Login.jsx`
-- Inalterada no redesign: cartão central 360px (`.card`) com título "✦HermitCrab", dois formulários (membro/convidado) e erro condicional. Única tela fora do shell.
+- Cartão central 380px (`.card`) com a marca Hermit: logo (quadrado violeta com bug, 44px), título "HermitCrab" (`--font-display`) e descrição breve em `--color-gray-600`. Única tela fora do shell.
+- **Login exclusivo por e-mail HermitCrab (Google Workspace)**: botão oficial do Google Identity Services no modo real, ou dropdown simulado + "Entrar com Google" no modo mock. Caption cinza avisa que o acesso é restrito à equipe.
+- **Login de convidado removido por segurança** (UI e `loginGuest` do `SessionContext`). Sessões somente leitura continuam existindo no modelo (papel/`canWrite`), mas não há mais como criá-las pela tela de login. O endpoint `type: 'guest'` ainda existe na API mock/backend — remover é um passo à parte, no backend.
 
 ---
 
@@ -148,7 +150,7 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 - Três `.card` lado a lado (Abertas/Concluídas/Fechadas) com número em `--font-display`.
 
 ### `Home — Tabela de issues abertas`
-- Cartão com tabela: Status agora é `StatusPill` (leitura), Severity é `severity-chip`, Version usa `.cell-mono`, Tag é `tag-chip`; Found By segue `AvatarWithLabel`. Clicar na linha abre o `IssueDetailModal`.
+- Cartão com tabela: Status agora é `StatusPill` (leitura), Severity é `severity-chip`, Version usa `.cell-mono`, Tag é `tag-chip`; Found By usa `AvatarGroup` (pilha de miniaturas). Clicar na linha abre o `IssueDetailModal`.
 
 ---
 
@@ -168,7 +170,7 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 
 ### `IssueTracker — Grupos por status`
 - Uma `<section class="issue-group">` por status: container branco com **borda** e raio 16, cabeçalho colapsável (`.issue-group-header`: chevron + dot do status via `.status-dot--<slug>` + nome + `count-pill` cinza) e tabela com `thead` em faixa `--color-surface-50`.
-- Células: Status = `StatusPillSelect` (se pode escrever) ou `StatusPill`; Severity = `severity-chip`; Keywords = `keyword-chip`; Tag = `tag-chip`; Version = `.cell-mono`; Attachment = `.attachment-link` (ícone + link truncado, abre em nova aba); Found By = `AvatarWithLabel`; Title clicável abre o modal.
+- Células: Status = `StatusPillSelect` (se pode escrever) ou `StatusPill`; Severity = `severity-chip`; Keywords = `keyword-chip`; Tag = `tag-chip`; Version = `.cell-mono`; Attachment = `.attachment-link` (ícone + link truncado, abre em nova aba); Found By = `AvatarGroup`; Title clicável abre o modal.
 
 ### `IssueDetailModal`
 - Arquivo: `src/components/IssueDetailModal/IssueDetailModal.jsx`
@@ -221,7 +223,7 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 | Checkbox | `src/components/Checkbox/Checkbox.jsx` |
 | StatusPill / StatusPillSelect | `src/components/StatusPill/StatusPill.jsx` |
 | FieldIcons | `src/components/FieldIcons/FieldIcons.jsx` |
-| Avatar / AvatarWithLabel | `src/components/Avatar/Avatar.jsx` |
+| Avatar / AvatarWithLabel / AvatarGroup | `src/components/Avatar/Avatar.jsx` |
 | StatusDot (Test Run) | `src/components/StatusDot/StatusDot.jsx` |
 | Loading | `src/components/Loading/Loading.jsx` |
 | ErrorBoundary | `src/components/ErrorBoundary/ErrorBoundary.jsx` |

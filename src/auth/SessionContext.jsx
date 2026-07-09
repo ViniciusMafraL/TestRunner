@@ -17,11 +17,6 @@ export function SessionProvider({ children }) {
         writeStoredSession(newSession);
         setSession(newSession);
       },
-      async loginGuest(name) {
-        const { session: newSession } = await api.login({ type: 'guest', name });
-        writeStoredSession(newSession);
-        setSession(newSession);
-      },
       async logout() {
         await api.logout();
         clearStoredSession();

@@ -16,18 +16,9 @@ describe('Login (componente)', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('entra como convidado informando um nome e ganha sessão somente leitura', async () => {
+  it('não oferece mais login como convidado (removido por segurança)', () => {
     renderWithProviders(<Login />);
-    await userEvent.type(screen.getByLabelText(/Ou entre como convidado/), 'Fulano');
-    await userEvent.click(screen.getByRole('button', { name: 'Entrar como convidado' }));
-    await waitFor(() => {
-      expect(localStorage.getItem('workflow_session')).toContain('"canWrite":false');
-    });
-  });
-
-  it('bloqueia o login como convidado sem nome', async () => {
-    renderWithProviders(<Login />);
-    await userEvent.click(screen.getByRole('button', { name: 'Entrar como convidado' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(/nome/i);
+    expect(screen.queryByText(/convidado/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /convidado/i })).not.toBeInTheDocument();
   });
 });
