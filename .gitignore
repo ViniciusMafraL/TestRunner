@@ -15,8 +15,9 @@ secrets/
 # Dependências
 node_modules/
 
-# Build output
+# Build output (o deploy publica a partir da pasta local via gh-pages; não versionar)
 build
+dist/
 
 # Testes
 coverage/
@@ -33,8 +34,6 @@ blob-report/
 Thumbs.db
 .vscode/
 .idea/
-
-.dist/
 
 specs/
 .claude/
