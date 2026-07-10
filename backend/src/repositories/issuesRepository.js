@@ -2,12 +2,13 @@ import { StatusGroup } from 'shared/enums.js';
 import { findLatestVersion } from 'shared/version.js';
 import { validateIssuePayload, validateIssueUpdatePayload } from 'shared/contracts.js';
 import { groupIssuesByStatus } from 'shared/groupByStatus.js';
-import { config } from '../config.js';
 import { readRange, appendRow, updateRow } from '../googleSheets.js';
 import { HttpError } from '../HttpError.js';
 
-// Ordem exata das colunas na aba "Sportia PC" da planilha real (confirmada
-// via backend/scripts/verify-sheets-access.mjs em 2026-07-02).
+// Ordem exata das colunas da aba de issues, padrão em todas as operações.
+// Com "projeto = aba", a issue vive na aba do projeto; `project` é derivado do
+// nome da aba (não digitado). A coluna O continua no layout (compatibilidade),
+// mas o valor devolvido/gravado é sempre o nome da aba.
 const COLUMNS = [
   'id',
   'status',
@@ -23,13 +24,35 @@ const COLUMNS = [
   'store',
   'createdIn',
   'responsible',
+  'project',
+];
+const LAST_COLUMN = 'O';
+
+// Cabeçalho legível da aba (linha 1) — usado ao criar uma aba-projeto nova.
+export const ISSUE_SHEET_HEADER = [
+  'ID',
+  'Status',
+  'Severity',
+  'Tag',
+  'Title',
+  'Description',
+  'Attachment',
+  'Found By',
+  'Version',
+  'Platform',
+  'Key words',
+  'Store',
+  'Created In',
+  'Responsible',
+  'Project',
 ];
 
-function rowToIssue(rowNumber, values) {
+function rowToIssue(rowNumber, values, projectName) {
   const issue = { rowNumber };
   COLUMNS.forEach((key, index) => {
     issue[key] = values[index] ?? '';
   });
+  issue.project = projectName; // project é sempre o nome da aba
   return issue;
 }
 
@@ -42,17 +65,17 @@ function withoutRowNumber(issue) {
   return rest;
 }
 
-async function listIssuesWithRowNumbers() {
-  const rows = await readRange(config.issuesGid, 'A2:N');
-  return rows.map((row, index) => rowToIssue(index + 2, row)).filter((issue) => issue.status);
+async function listIssuesWithRowNumbers(operation, project) {
+  const rows = await readRange(project.gid, `A2:${LAST_COLUMN}`, operation.spreadsheetId);
+  return rows.map((row, index) => rowToIssue(index + 2, row, project.name)).filter((issue) => issue.status);
 }
 
-export async function listIssues() {
-  return (await listIssuesWithRowNumbers()).map(withoutRowNumber);
+export async function listIssues(operation, project) {
+  return (await listIssuesWithRowNumbers(operation, project)).map(withoutRowNumber);
 }
 
-export async function getHomeSummary() {
-  const issues = await listIssues();
+export async function getHomeSummary(operation, project) {
+  const issues = await listIssues(operation, project);
   const counts = { open: 0, done: 0, closed: 0 };
   for (const issue of issues) {
     const group = StatusGroup[issue.status];
@@ -66,18 +89,18 @@ export async function getHomeSummary() {
   return { counts, latestVersionOpenIssues };
 }
 
-export async function getIssuesGroupedByStatus() {
-  const issues = await listIssues();
+export async function getIssuesGroupedByStatus(operation, project) {
+  const issues = await listIssues(operation, project);
   return { groups: groupIssuesByStatus(issues) };
 }
 
-export async function createIssue(payload) {
+export async function createIssue(operation, project, payload) {
   const result = validateIssuePayload(payload);
   if (!result.valid) {
     throw new HttpError(422, result.error.code, result.error.message);
   }
 
-  const issues = await listIssues();
+  const issues = await listIssues(operation, project);
   const maxSeq = issues.reduce((max, issue) => {
     const match = issue.id?.match(/^BUG-(\d+)$/);
     return match ? Math.max(max, Number(match[1])) : max;
@@ -97,34 +120,35 @@ export async function createIssue(payload) {
     id: `BUG-${String(maxSeq + 1).padStart(3, '0')}`,
     status: 'Open',
     createdIn: new Date().toISOString().slice(0, 10),
+    project: project.name, // project derivado da aba, ignora o que vier no payload
   };
 
-  await appendRow(config.issuesGid, issueToRow(issue));
+  await appendRow(project.gid, issueToRow(issue), operation.spreadsheetId);
   return issue;
 }
 
-export async function updateIssueStatus(id, status) {
-  const issues = await listIssuesWithRowNumbers();
+export async function updateIssueStatus(operation, project, id, status) {
+  const issues = await listIssuesWithRowNumbers(operation, project);
   const issue = issues.find((entry) => entry.id === id);
   if (!issue) {
     throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
   }
   const updated = { ...issue, status };
-  await updateRow(config.issuesGid, issue.rowNumber, issueToRow(updated));
+  await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);
   return withoutRowNumber(updated);
 }
 
-export async function updateIssue(id, payload) {
+export async function updateIssue(operation, project, id, payload) {
   const result = validateIssueUpdatePayload(payload);
   if (!result.valid) {
     throw new HttpError(422, result.error.code, result.error.message);
   }
-  const issues = await listIssuesWithRowNumbers();
+  const issues = await listIssuesWithRowNumbers(operation, project);
   const issue = issues.find((entry) => entry.id === id);
   if (!issue) {
     throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
   }
-  const updated = { ...issue, ...result.patch };
-  await updateRow(config.issuesGid, issue.rowNumber, issueToRow(updated));
+  const updated = { ...issue, ...result.patch, project: project.name };
+  await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);
   return withoutRowNumber(updated);
 }

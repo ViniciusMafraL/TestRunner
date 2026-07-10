@@ -54,7 +54,10 @@ describe('IssueTracker - seleção em lote (componente)', () => {
 
     const base = `${window.location.origin}${window.location.pathname}`;
     expect(writeText).toHaveBeenCalledWith(
-      [`${base}#/issue-tracker/BUG-001`, `${base}#/issue-tracker/BUG-008`].join('\n'),
+      [
+        `${base}#/issue-tracker/BUG-001?op=sportia&project=Sportia`,
+        `${base}#/issue-tracker/BUG-008?op=sportia&project=Sportia`,
+      ].join('\n'),
     );
     expect(await screen.findByText('2 links copiados')).toBeInTheDocument();
   });

@@ -55,6 +55,18 @@ export function getUsers() {
   return request({ method: 'GET', url: '/users' });
 }
 
+export function getOperations() {
+  return request({ method: 'GET', url: '/operations' });
+}
+
+export function getProjects(op) {
+  return request({ method: 'GET', url: `/operations/${encodeURIComponent(op)}/projects` });
+}
+
+export function addProject(op, name) {
+  return request({ method: 'POST', url: `/operations/${encodeURIComponent(op)}/projects`, data: { name } });
+}
+
 export function getTestRuns() {
   return request({ method: 'GET', url: '/test-runs' });
 }

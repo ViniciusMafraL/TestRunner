@@ -8,7 +8,7 @@ export const testRunsRouter = Router();
 testRunsRouter.get(
   '/',
   asyncHandler(async (req, res) => {
-    res.json({ demands: await listTestRuns() });
+    res.json({ demands: await listTestRuns(req.operation) });
   }),
 );
 
@@ -16,7 +16,7 @@ testRunsRouter.post(
   '/',
   requireWrite,
   asyncHandler(async (req, res) => {
-    const demand = await createTestRun(req.body ?? {});
+    const demand = await createTestRun(req.operation, req.body ?? {});
     res.status(201).json(demand);
   }),
 );
@@ -25,7 +25,7 @@ testRunsRouter.patch(
   '/:id/status',
   requireWrite,
   asyncHandler(async (req, res) => {
-    const demand = await updateTestRunStatus(req.params.id, req.body?.status);
+    const demand = await updateTestRunStatus(req.operation, req.params.id, req.body?.status);
     res.json(demand);
   }),
 );

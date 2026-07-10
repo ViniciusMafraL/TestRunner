@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Status } from 'shared/enums.js';
 import { api } from '../../api/client.js';
 import { UNRECOGNIZED_STATUS_KEY } from 'shared/groupByStatus.js';
+import { useOperations } from '../../operations/OperationContext.jsx';
+import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
 import { issueStatusCategory, issueStatusSlug } from '../../utils/statusCategory.js';
 import { matchesIssueSearch } from '../../utils/issueSearch.js';
 import {
@@ -30,6 +32,7 @@ const COLUMN_WIDTHS = {
   checkbox: 24,
   id: 90,
   status: 120,
+  project: 130,
   severity: 110,
   tag: 90,
   title: 220,
@@ -101,10 +104,15 @@ export function IssueTracker() {
   // para que o link do modal seja compartilhável e o voltar do navegador o feche.
   const { issueId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { currentOperation, currentProject, tagValues, selectOperation, selectProject } = useOperations();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useLocalStorageState('issueTracker.collapsedGroups.v1', {});
   const [query, setQuery] = useState('');
+  // Filtro por Tag (localização do bug) — usado sobretudo pela Sportia, que tem
+  // 1 projeto e diferencia por Tag. Operações multi-projeto trocam de projeto/aba.
+  const [tagFilter, setTagFilter] = useState('all');
   // Seleção em lote: efêmera de propósito (ação momentânea, não preferência).
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -125,6 +133,17 @@ export function IssueTracker() {
   const openCount = allIssues.filter((issue) => issueStatusCategory(issue.status) === 'aberta').length;
   const criticalCount = allIssues.filter((issue) => issue.severity === 'Critical').length;
 
+  // Deep-link: /issue-tracker/BUG-1?op=roblox&project=Mini-game X troca a
+  // operação e o projeto antes de resolver a issue (IDs se repetem entre abas).
+  const opParam = searchParams.get('op');
+  const projectParam = searchParams.get('project');
+  useEffect(() => {
+    if (opParam && opParam !== currentOperation) selectOperation(opParam);
+  }, [opParam, currentOperation, selectOperation]);
+  useEffect(() => {
+    if (projectParam && projectParam !== currentProject) selectProject(projectParam);
+  }, [projectParam, currentProject, selectProject]);
+
   async function loadGroups() {
     setLoading(true);
     const data = await api.getIssuesGroupedByStatus();
@@ -132,9 +151,12 @@ export function IssueTracker() {
     setLoading(false);
   }
 
+  // Recarrega ao trocar de operação OU de projeto (issues vêm da aba do projeto).
   useEffect(() => {
+    if (!currentOperation || !currentProject) return;
+    setTagFilter('all');
     loadGroups();
-  }, []);
+  }, [currentOperation, currentProject]);
 
   function findIssue(id) {
     for (const group of groups) {
@@ -146,12 +168,17 @@ export function IssueTracker() {
 
   const selectedIssue = issueId ? findIssue(issueId) : null;
 
+  // Link compartilhável carrega operação e projeto (a issue vive numa aba).
+  const opQuery = currentOperation
+    ? `?op=${encodeURIComponent(currentOperation)}${currentProject ? `&project=${encodeURIComponent(currentProject)}` : ''}`
+    : '';
+
   function openIssue(issue) {
-    navigate(`/issue-tracker/${encodeURIComponent(issue.id)}`);
+    navigate(`/issue-tracker/${encodeURIComponent(issue.id)}${opQuery}`);
   }
 
   function closeIssue() {
-    navigate('/issue-tracker');
+    navigate(`/issue-tracker${opQuery}`);
   }
 
   function applyStatusLocally(id, status) {
@@ -239,7 +266,7 @@ export function IssueTracker() {
 
   async function handleCopyLinks() {
     const links = selectedIssuesInOrder().map(
-      (issue) => `${window.location.origin}${window.location.pathname}#/issue-tracker/${encodeURIComponent(issue.id)}`,
+      (issue) => `${window.location.origin}${window.location.pathname}#/issue-tracker/${encodeURIComponent(issue.id)}${opQuery}`,
     );
     try {
       await navigator.clipboard.writeText(links.join('\n'));
@@ -375,6 +402,16 @@ export function IssueTracker() {
           onToggle={toggle}
           alwaysVisibleFields={ISSUE_TRACKER_ALWAYS_VISIBLE_FIELDS}
         />
+        {tagValues.length > 0 ? (
+          <Dropdown
+            ariaLabel="Filtrar por tag"
+            value={tagFilter}
+            options={['all', ...tagValues]}
+            onChange={setTagFilter}
+            renderValue={(value) => (value === 'all' ? 'Todas as tags' : value)}
+            renderOption={(value) => (value === 'all' ? 'Todas as tags' : value)}
+          />
+        ) : null}
         <span style={{ flex: 1 }} />
         <span className="stat-chip">
           <span className="stat-chip-dot" style={{ background: 'var(--color-violet)' }} />
@@ -391,7 +428,9 @@ export function IssueTracker() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           {groups.map((group) => {
-            const filteredIssues = group.issues.filter((issue) => matchesIssueSearch(issue, query));
+            const filteredIssues = group.issues.filter(
+              (issue) => matchesIssueSearch(issue, query) && (tagFilter === 'all' || issue.tag === tagFilter),
+            );
             return (
               <section key={group.status} className="issue-group">
                 <button

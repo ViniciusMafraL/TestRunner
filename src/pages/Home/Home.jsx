@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
+import { useOperations } from '../../operations/OperationContext.jsx';
 import { IssueDetailModal } from '../../components/IssueDetailModal/IssueDetailModal.jsx';
 import { Loading } from '../../components/Loading/Loading.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
@@ -17,11 +18,14 @@ const COLUMN_WIDTHS = {
 };
 
 export function Home() {
+  const { currentOperation, currentProject } = useOperations();
   const [summary, setSummary] = useState(null);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Recarrega ao trocar de operação OU de projeto (o resumo é do projeto/aba atual).
   useEffect(() => {
+    if (!currentOperation || !currentProject) return undefined;
     let cancelled = false;
     setLoading(true);
     api.getHomeSummary().then((data) => {
@@ -33,7 +37,7 @@ export function Home() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [currentOperation, currentProject]);
 
   if (loading || !summary) {
     return (

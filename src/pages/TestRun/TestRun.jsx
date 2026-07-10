@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { TestRunStatus } from 'shared/enums.js';
 import { api } from '../../api/client.js';
 import { useSession } from '../../auth/SessionContext.jsx';
+import { useOperations } from '../../operations/OperationContext.jsx';
 import { useOptimisticUpdate } from '../../hooks/useOptimisticUpdate.js';
 import { TestRunCard } from '../../components/TestRunCard/TestRunCard.jsx';
 import { TestRunForm } from '../../components/TestRunForm/TestRunForm.jsx';
@@ -10,6 +11,7 @@ import { testRunStatusCategory } from '../../utils/statusCategory.js';
 
 export function TestRun() {
   const { canWrite } = useSession();
+  const { currentOperation } = useOperations();
   const [demands, setDemands] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const { run, error } = useOptimisticUpdate();
@@ -20,8 +22,9 @@ export function TestRun() {
   }
 
   useEffect(() => {
+    if (!currentOperation) return;
     loadDemands();
-  }, []);
+  }, [currentOperation]);
 
   async function handleCreate(payload) {
     await api.createTestRun(payload);

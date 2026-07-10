@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createIssue } from '../../src/api/mock/issues.js';
 
 describe('POST /issues (contract)', () => {
-  it('cria a issue com id, status Open e createdIn gerados automaticamente', async () => {
+  it('cria a issue com id, status Open, createdIn e project (da aba atual) automáticos', async () => {
     const issue = await createIssue({ title: 'Nova issue', version: '2.0.0' });
     expect(issue.id).toMatch(/^BUG-\d{3}$/);
     expect(issue.status).toBe('Open');
     expect(issue.title).toBe('Nova issue');
+    // project é derivado da aba/projeto atual (Sportia por padrão), não do payload.
+    expect(issue.project).toBe('Sportia');
     expect(issue.createdIn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 

@@ -11,6 +11,9 @@
     "verify-sheets-access": "node --env-file=.env scripts/verify-sheets-access.mjs",
     "verify-drive-access": "node --env-file=.env scripts/verify-drive-access.mjs",
     "setup-users-sheet": "node --env-file=.env scripts/setup-users-sheet.mjs",
+    "setup-control-tabs": "node --env-file=.env scripts/setup-control-tabs.mjs",
+    "setup-operation": "node --env-file=.env scripts/setup-operation.mjs",
+    "register-operation": "node --env-file=.env scripts/register-operation.mjs",
     "migrate-foundby": "node --env-file=.env scripts/migrate-foundby.mjs",
     "backfill-issue-ids": "node --env-file=.env scripts/backfill-issue-ids.mjs",
     "setup-test-run-tab": "node --env-file=.env scripts/setup-test-run-tab.mjs"

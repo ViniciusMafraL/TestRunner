@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Severity, Tag, Platform, Keywords, Store } from 'shared/enums.js';
+import { Severity, Platform, Keywords, Store } from 'shared/enums.js';
 import { api } from '../../api/client.js';
 import { useSession } from '../../auth/SessionContext.jsx';
+import { useOperations } from '../../operations/OperationContext.jsx';
 import { useQaUsers } from '../../hooks/useQaUsers.js';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
 import { FIELD_ICONS } from '../../components/FieldIcons/FieldIcons.jsx';
@@ -16,11 +17,9 @@ const PRIMARY_SELECTS = [
   { name: 'platform', label: 'Platform', options: Platform },
 ];
 
-/* Keywords fica fora desta lista: é multi-seleção, como na planilha. */
-const EXTRA_SELECTS = [
-  { name: 'tag', label: 'Tag', options: Tag },
-  { name: 'store', label: 'Store', options: Store },
-];
+/* Keywords e Tag ficam fora desta lista: Keywords é multi-seleção; Tag depende
+   dos valores da operação (tagValues) e por isso é montada no render. */
+const EXTRA_SELECTS = [{ name: 'store', label: 'Store', options: Store }];
 
 const INITIAL_FORM = {
   title: '',
@@ -52,6 +51,7 @@ function SelectRow({ field, value, onChange }) {
 
 export function Reporter() {
   const { canWrite } = useSession();
+  const { operations, currentOperation, currentProject, projects, tagValues } = useOperations();
   const qaUsers = useQaUsers();
   const [form, setForm] = useState(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -61,6 +61,10 @@ export function Reporter() {
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   // { index, total, percent } enquanto as evidências sobem; null fora disso.
   const [uploadProgress, setUploadProgress] = useState(null);
+  const operationLabel = operations.find((op) => op.id === currentOperation)?.label ?? currentOperation;
+  // Sportia tem 1 projeto (aba única): o destino é a operação. Multi-projeto
+  // (Roblox/Fortnite/Gameloft) mostra o projeto/aba onde a issue será criada.
+  const destination = projects.length > 1 ? `${operationLabel} · ${currentProject ?? '—'}` : operationLabel;
 
   if (!canWrite) {
     return (
@@ -188,6 +192,21 @@ export function Reporter() {
           </div>
         </div>
 
+        <div className="field-row">
+          <span className="field-label">
+            {FIELD_ICONS.tag}
+            Destino
+          </span>
+          <div className="field-control">
+            <span style={{ font: 'var(--font-label)' }} aria-label="Destino da issue">
+              {destination}
+            </span>
+            <span style={{ font: 'var(--font-label)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
+              O projeto vem da aba selecionada no menu lateral.
+            </span>
+          </div>
+        </div>
+
         {PRIMARY_SELECTS.map((field) => (
           <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
         ))}
@@ -225,6 +244,9 @@ export function Reporter() {
 
         {showExtra ? (
           <>
+            {tagValues.length > 0 ? (
+              <SelectRow field={{ name: 'tag', label: 'Tag', options: tagValues }} value={form.tag} onChange={updateField} />
+            ) : null}
             {EXTRA_SELECTS.map((field) => (
               <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
             ))}

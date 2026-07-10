@@ -14,6 +14,7 @@ export async function getUsers() {
       email: `${name.toLowerCase()}@sportia.mock`,
       name,
       role: index === 0 ? 'admin' : 'qa',
+      operations: index === 0 ? '*' : 'sportia, roblox',
     })),
   };
 }

@@ -7,6 +7,6 @@ export const homeRouter = Router();
 homeRouter.get(
   '/summary',
   asyncHandler(async (req, res) => {
-    res.json(await getHomeSummary());
+    res.json(await getHomeSummary(req.operation, req.project));
   }),
 );

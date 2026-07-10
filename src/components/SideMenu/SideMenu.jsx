@@ -1,7 +1,46 @@
 import { NavLink } from 'react-router-dom';
 import { useSession } from '../../auth/SessionContext.jsx';
+import { useOperations } from '../../operations/OperationContext.jsx';
 import { useTheme } from '../../hooks/useTheme.js';
 import { Avatar } from '../Avatar/Avatar.jsx';
+import { Dropdown } from '../Dropdown/Dropdown.jsx';
+
+function OperationSwitcher() {
+  const { operations, currentOperation, selectOperation } = useOperations();
+  if (operations.length === 0) return null;
+  const labelOf = (id) => operations.find((op) => op.id === id)?.label ?? id;
+  return (
+    <div className="app-operation-switcher">
+      <span className="app-operation-label">Operação</span>
+      <Dropdown
+        ariaLabel="Operação"
+        value={currentOperation ?? operations[0].id}
+        options={operations.map((op) => op.id)}
+        onChange={selectOperation}
+        renderValue={labelOf}
+        renderOption={labelOf}
+      />
+    </div>
+  );
+}
+
+function ProjectSwitcher() {
+  const { projects, currentProject, selectProject } = useOperations();
+  // Oculto quando a operação tem 0 ou 1 projeto (ex.: Sportia) — nesse caso não
+  // há troca a fazer e a localização vem da Tag.
+  if (projects.length <= 1) return null;
+  return (
+    <div className="app-operation-switcher">
+      <span className="app-operation-label">Projeto</span>
+      <Dropdown
+        ariaLabel="Projeto"
+        value={currentProject ?? projects[0]}
+        options={projects}
+        onChange={selectProject}
+      />
+    </div>
+  );
+}
 
 function Icon({ children, size = 18 }) {
   return (
@@ -105,6 +144,9 @@ export function SideMenu() {
         </span>
         Qa TestRunner
       </div>
+
+      <OperationSwitcher />
+      <ProjectSwitcher />
 
       <ul className="app-nav-list">
         {SECTIONS.map((section) => (

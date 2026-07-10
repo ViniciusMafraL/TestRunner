@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Keywords, Platform, Severity, Status, Store, Tag } from 'shared/enums.js';
+import { Keywords, Platform, Severity, Status, Store } from 'shared/enums.js';
 import { ISSUE_EDITABLE_FIELDS } from 'shared/contracts.js';
 import { useSession } from '../../auth/SessionContext.jsx';
+import { useOperations } from '../../operations/OperationContext.jsx';
 import { useQaUsers } from '../../hooks/useQaUsers.js';
 import { StatusPill, StatusPillSelect } from '../StatusPill/StatusPill.jsx';
 import { AvatarGroup } from '../Avatar/Avatar.jsx';
@@ -14,10 +15,10 @@ import { KeywordChips } from '../KeywordChips/KeywordChips.jsx';
 const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
 /* Mesmos seletores de valores fixos do Reporter (ver contracts/api.md).
-   Found By e Keywords ficam fora: são multi-seleção. */
+   Found By e Keywords ficam fora (multi-seleção); Tag é montada no render pois
+   depende dos valores da operação (tagValues). */
 const EDIT_SELECTS = [
   { name: 'severity', label: 'Severity', options: Severity },
-  { name: 'tag', label: 'Tag', options: Tag },
   { name: 'platform', label: 'Platform', options: Platform },
   { name: 'store', label: 'Store', options: Store },
 ];
@@ -49,6 +50,7 @@ function buildForm(issue) {
 
 function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
   const { canWrite } = useSession();
+  const { tagValues } = useOperations();
   const qaUsers = useQaUsers();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(() => buildForm(issue));
@@ -236,7 +238,10 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
                 />
               </div>
             </div>
-            {EDIT_SELECTS.map((field) => (
+            {(tagValues.length > 0
+              ? [{ name: 'severity', label: 'Severity', options: Severity }, { name: 'tag', label: 'Tag', options: tagValues }, ...EDIT_SELECTS.slice(1)]
+              : EDIT_SELECTS
+            ).map((field) => (
               <div key={field.name} className="field-row">
                 <label className="field-label" htmlFor={`edit-${field.name}`}>
                   {FIELD_ICONS[field.name]}

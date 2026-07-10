@@ -1,6 +1,5 @@
 import { TestRunStatus } from 'shared/enums.js';
 import { validateTestRunPayload } from 'shared/contracts.js';
-import { config } from '../config.js';
 import { readRange, appendRow, updateRow } from '../googleSheets.js';
 import { HttpError } from '../HttpError.js';
 
@@ -25,22 +24,22 @@ function withoutRowNumber(demand) {
   return rest;
 }
 
-async function listDemandsWithRowNumbers() {
-  const rows = await readRange(config.testRunGid, 'A2:G');
+async function listDemandsWithRowNumbers(operation) {
+  const rows = await readRange(operation.testRunGid, 'A2:G', operation.spreadsheetId);
   return rows.map((row, index) => rowToDemand(index + 2, row)).filter((demand) => demand.status);
 }
 
-export async function listTestRuns() {
-  return (await listDemandsWithRowNumbers()).map(withoutRowNumber);
+export async function listTestRuns(operation) {
+  return (await listDemandsWithRowNumbers(operation)).map(withoutRowNumber);
 }
 
-export async function createTestRun(payload) {
+export async function createTestRun(operation, payload) {
   const result = validateTestRunPayload(payload);
   if (!result.valid) {
     throw new HttpError(422, result.error.code, result.error.message);
   }
 
-  const demands = await listTestRuns();
+  const demands = await listTestRuns(operation);
   const maxSeq = demands.reduce((max, demand) => {
     const match = demand.id?.match(/^RUN-(\d+)$/);
     return match ? Math.max(max, Number(match[1])) : max;
@@ -52,20 +51,20 @@ export async function createTestRun(payload) {
     status: 'Pendente',
   };
 
-  await appendRow(config.testRunGid, demandToRow(demand));
+  await appendRow(operation.testRunGid, demandToRow(demand), operation.spreadsheetId);
   return demand;
 }
 
-export async function updateTestRunStatus(id, status) {
+export async function updateTestRunStatus(operation, id, status) {
   if (!TestRunStatus.includes(status)) {
     throw new HttpError(422, 'VALIDATION_ERROR', 'Status de Test Run inválido');
   }
-  const demands = await listDemandsWithRowNumbers();
+  const demands = await listDemandsWithRowNumbers(operation);
   const demand = demands.find((entry) => entry.id === id);
   if (!demand) {
     throw new HttpError(404, 'NOT_FOUND', 'Demanda de Test Run não encontrada');
   }
   const updated = { ...demand, status };
-  await updateRow(config.testRunGid, demand.rowNumber, demandToRow(updated));
+  await updateRow(operation.testRunGid, demand.rowNumber, demandToRow(updated), operation.spreadsheetId);
   return withoutRowNumber(updated);
 }

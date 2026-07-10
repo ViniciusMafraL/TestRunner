@@ -4,11 +4,14 @@ import multer from 'multer';
 import { EVIDENCE_MAX_FILE_SIZE_MB } from 'shared/contracts.js';
 import { config } from './config.js';
 import { requireSession } from './authMiddleware.js';
+import { requireOperation } from './operationMiddleware.js';
+import { requireProject } from './projectMiddleware.js';
 import { authRouter } from './routes/auth.js';
 import { homeRouter } from './routes/home.js';
 import { issuesRouter } from './routes/issues.js';
 import { testRunsRouter } from './routes/testRuns.js';
 import { usersRouter } from './routes/users.js';
+import { operationsRouter } from './routes/operations.js';
 
 export function createApp() {
   const app = express();
@@ -16,11 +19,13 @@ export function createApp() {
   app.use(express.json());
 
   app.use('/auth', authRouter);
-  // Todas as rotas de dados exigem sessão (token do login); as de escrita
-  // exigem também papel com escrita — ver authMiddleware.js.
-  app.use('/home', requireSession, homeRouter);
-  app.use('/issues', requireSession, issuesRouter);
-  app.use('/test-runs', requireSession, testRunsRouter);
+  // Rotas de dados exigem sessão + operação (X-Operation); as baseadas em issues
+  // exigem também o projeto/aba (X-Project). Escrita exige papel com escrita.
+  // Test Runs são por operação (sem projeto). /operations e /users só exigem sessão.
+  app.use('/home', requireSession, requireOperation, requireProject, homeRouter);
+  app.use('/issues', requireSession, requireOperation, requireProject, issuesRouter);
+  app.use('/test-runs', requireSession, requireOperation, testRunsRouter);
+  app.use('/operations', requireSession, operationsRouter);
   app.use('/users', requireSession, usersRouter);
 
   // eslint-disable-next-line no-unused-vars

@@ -1,3 +1,6 @@
+// `project` NÃO entra aqui: agora é derivado da aba (página) selecionada da
+// planilha da operação, não um campo digitado. O backend/mock carimba o
+// project = nome da aba ao criar/devolver a issue.
 export const ISSUE_REQUIRED_FIELDS = ['title', 'version'];
 export const ISSUE_OPTIONAL_FIELDS = [
   'severity',
@@ -115,6 +118,24 @@ export const WRITE_ROLES = ['admin', 'qa'];
 
 export function roleCanWrite(role) {
   return WRITE_ROLES.includes(role);
+}
+
+/**
+ * Operações que um usuário acessa. Aceita array ou string separada por vírgula
+ * (formato da coluna "Operations" na planilha de controle). `*` = todas.
+ */
+export function parseOperationsList(value) {
+  if (Array.isArray(value)) return value.map((entry) => String(entry).trim()).filter(Boolean);
+  return String(value ?? '')
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+export function userCanAccessOperation(allowedOperations, operationId) {
+  if (!operationId) return false;
+  const list = parseOperationsList(allowedOperations);
+  return list.includes('*') || list.includes(operationId);
 }
 
 export function validateLoginPayload(payload) {

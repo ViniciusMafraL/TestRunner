@@ -51,16 +51,20 @@ authRouter.post(
         email: user.email,
         role: user.role,
         canWrite: roleCanWrite(user.role),
+        operations: user.operations,
       };
       res.json({ session: { ...session, token: signSession(session) } });
       return;
     }
 
+    // Convidado não acessa operações (só leitura de nada, na prática) — mantido
+    // por compatibilidade; o header X-Operation ainda barra com 403.
     const session = {
       kind: 'guest',
       displayName: payload.name.trim(),
       role: 'guest',
       canWrite: false,
+      operations: '',
     };
     res.json({ session: { ...session, token: signSession(session) } });
   }),

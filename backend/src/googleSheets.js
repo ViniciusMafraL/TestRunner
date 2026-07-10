@@ -30,6 +30,33 @@ export async function getTabTitle(gid, spreadsheetId = config.spreadsheetId) {
   return sheet.properties.title;
 }
 
+// Lista as abas (páginas) de uma planilha: [{ title, gid }]. Base da
+// auto-detecção de projetos (cada aba, exceto a de Test Run, é um projeto).
+export async function listTabs(spreadsheetId = config.spreadsheetId) {
+  const sheets = getSheetsClient();
+  const { data } = await sheets.spreadsheets.get({ spreadsheetId, fields: 'sheets.properties(sheetId,title)' });
+  return (data.sheets ?? []).map((entry) => ({ title: entry.properties.title, gid: entry.properties.sheetId }));
+}
+
+// Cria uma aba nova (projeto) e escreve o cabeçalho na linha 1. Retorna { title, gid }.
+export async function addTab(spreadsheetId, title, headerRow) {
+  const sheets = getSheetsClient();
+  const { data } = await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: { requests: [{ addSheet: { properties: { title } } }] },
+  });
+  const gid = data.replies?.[0]?.addSheet?.properties?.sheetId;
+  if (headerRow?.length) {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `'${title}'!A1`,
+      valueInputOption: 'RAW',
+      requestBody: { values: [headerRow] },
+    });
+  }
+  return { title, gid };
+}
+
 export async function readRange(gid, a1Range, spreadsheetId = config.spreadsheetId) {
   const sheets = getSheetsClient();
   const title = await getTabTitle(gid, spreadsheetId);
@@ -38,6 +65,25 @@ export async function readRange(gid, a1Range, spreadsheetId = config.spreadsheet
     range: `'${title}'!${a1Range}`,
   });
   return data.values ?? [];
+}
+
+// Variantes por título de aba (para as abas de controle Operations/Projects,
+// cujos gids não vivem no .env — o título é padrão e conhecido).
+export async function readRangeByTitle(title, a1Range, spreadsheetId = config.spreadsheetId) {
+  const sheets = getSheetsClient();
+  const { data } = await sheets.spreadsheets.values.get({ spreadsheetId, range: `'${title}'!${a1Range}` });
+  return data.values ?? [];
+}
+
+export async function appendRowByTitle(title, rowValues, spreadsheetId = config.spreadsheetId) {
+  const sheets = getSheetsClient();
+  await sheets.spreadsheets.values.append({
+    spreadsheetId,
+    range: `'${title}'!A:A`,
+    valueInputOption: 'RAW',
+    insertDataOption: 'INSERT_ROWS',
+    requestBody: { values: [rowValues] },
+  });
 }
 
 export async function appendRow(gid, rowValues, spreadsheetId = config.spreadsheetId) {

@@ -1024,6 +1024,21 @@ tr:last-child td {
   overflow-wrap: anywhere;
 }
 
+/* Seletor de operação (ambiente) no topo da sidebar. */
+.app-operation-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) var(--space-3);
+}
+
+.app-operation-label {
+  font: var(--font-caption);
+  color: var(--color-gray-600);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-caption);
+}
+
 /* Keywords múltiplas: um chip por palavra, quebrando linha. */
 .keyword-chips {
   display: inline-flex;
