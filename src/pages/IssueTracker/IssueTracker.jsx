@@ -105,7 +105,7 @@ export function IssueTracker() {
   const { issueId } = useParams();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { currentOperation, currentProject, tagValues, selectOperation, selectProject } = useOperations();
+  const { currentOperation, currentProject, projects, tagValues, selectOperation, selectProject } = useOperations();
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useLocalStorageState('issueTracker.collapsedGroups.v1', {});
@@ -152,11 +152,15 @@ export function IssueTracker() {
   }
 
   // Recarrega ao trocar de operação OU de projeto (issues vêm da aba do projeto).
+  // Só busca quando o projeto atual pertence à operação atual: ao trocar de
+  // operação, `projects` é esvaziado e o projeto antigo continua selecionado por
+  // um instante — buscar aí mandaria um X-Project inválido (404). Esperar a lista
+  // nova reconciliar evita o erro transitório e o request desperdiçado.
   useEffect(() => {
-    if (!currentOperation || !currentProject) return;
+    if (!currentOperation || !currentProject || !projects.includes(currentProject)) return;
     setTagFilter('all');
     loadGroups();
-  }, [currentOperation, currentProject]);
+  }, [currentOperation, currentProject, projects]);
 
   function findIssue(id) {
     for (const group of groups) {

@@ -18,14 +18,18 @@ const COLUMN_WIDTHS = {
 };
 
 export function Home() {
-  const { currentOperation, currentProject } = useOperations();
+  const { currentOperation, currentProject, projects } = useOperations();
   const [summary, setSummary] = useState(null);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Recarrega ao trocar de operação OU de projeto (o resumo é do projeto/aba atual).
+  // Só busca quando o projeto atual já pertence à operação atual: ao trocar de
+  // operação, `projects` é esvaziado e o projeto antigo ainda está selecionado
+  // por um instante — buscar aí mandaria um X-Project inválido (404). Esperar a
+  // lista nova reconciliar evita o erro transitório no console.
   useEffect(() => {
-    if (!currentOperation || !currentProject) return undefined;
+    if (!currentOperation || !currentProject || !projects.includes(currentProject)) return undefined;
     let cancelled = false;
     setLoading(true);
     api.getHomeSummary().then((data) => {
@@ -37,7 +41,7 @@ export function Home() {
     return () => {
       cancelled = true;
     };
-  }, [currentOperation, currentProject]);
+  }, [currentOperation, currentProject, projects]);
 
   if (loading || !summary) {
     return (

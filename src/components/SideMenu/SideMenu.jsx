@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { useOperations } from '../../operations/OperationContext.jsx';
 import { useTheme } from '../../hooks/useTheme.js';
+import { APP_VERSION, BUILD_TIME } from '../../version.js';
 import { Avatar } from '../Avatar/Avatar.jsx';
 import { Dropdown } from '../Dropdown/Dropdown.jsx';
 
@@ -174,6 +175,10 @@ export function SideMenu() {
             <div style={{ font: 'var(--font-label)', fontWeight: 700 }}>{session?.displayName}</div>
             <div className="app-session-role">{canWrite ? 'Acesso completo' : 'Somente leitura'}</div>
           </span>
+        </div>
+        <div className="app-version" title={BUILD_TIME ? `Build de ${BUILD_TIME}` : undefined}>
+          v{APP_VERSION}
+          {BUILD_TIME ? <span className="app-version-build"> · {BUILD_TIME}</span> : null}
         </div>
       </div>
     </nav>
