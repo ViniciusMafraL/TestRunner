@@ -188,6 +188,12 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 - Arquivos: `src/components/ColumnHeaderCell/ColumnHeaderCell.jsx` (th + alça), `src/hooks/useColumnLayout.js` (estado persistido), `src/hooks/useColumnReorder.js` (segurar-e-arrastar), `src/utils/columnLayout.js` (lógica pura: merge de ordem salva, clamp de largura, âncora de drop).
 - Limitação conhecida: sem auto-scroll da tabela durante o arrasto (role a tabela antes de arrastar). Coluna do checkbox é fixa.
 
+### `IssueTracker — Ordenação por Severity` *(novo)*
+- Botão de sort no cabeçalho **Severity** (`.col-sort-btn`, no mesmo `ColumnHeaderCell`): aparece no hover e fica fixo (`.col-sort-btn--active`, violeta) quando há ordenação ativa. Glifos cíclicos: `»«` (padrão, por id) → `»` (mais crítico primeiro) → `«` (menos crítico primeiro).
+- Reordena as linhas **dentro de cada grupo de status** (a divisão por grupos continua). É `aria-hidden` e faz `stopPropagation` no pointerdown — não polui o nome acessível do cabeçalho nem dispara o arrasto de reorder.
+- **Efêmero**: estado só em memória (`useState`), não persiste; recarregar volta ao padrão por id.
+- Ranking de criticidade próprio (diverge do enum): `Compliance › Critical › Major › Normal › Low › Suggestion`. Severity vazia vai ao fim no modo `»`. Lógica pura em `src/utils/issueSort.js` (`sortIssuesBySeverity`, `nextSeveritySort`, `SEVERITY_RANK`).
+
 ### `IssueDetailModal`
 - Arquivo: `src/components/IssueDetailModal/IssueDetailModal.jsx`
 - O que é (redesenhado): `.modal-overlay` + painel `.form-panel.issue-detail-panel` (640px, corpo rolável). Cabeçalho com **chip de ID** mono + botão fechar (X SVG). Corpo: título grande, linha de pílulas de resumo (StatusPill/StatusPillSelect + severity-chip + tag-chip), descrição em texto corrido. Depois, seção **"Fields"** em linhas `field-row` com ícone + rótulo + valor (Found By com avatar, Version mono, Platform, Keywords chip, Store, Created In, Attachment como link). Valores vazios aparecem como "—" cinza.

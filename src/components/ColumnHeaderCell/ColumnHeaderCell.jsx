@@ -13,6 +13,13 @@ import { clampWidth } from '../../utils/columnLayout.js';
  * A alça é um span aria-hidden (não um botão) de propósito: o nome acessível
  * do columnheader continua sendo apenas o rótulo, como os testes esperam.
  */
+const SORT_GLYPH = { none: '»«', critical: '»', least: '«' };
+const SORT_ARIA = {
+  none: 'Ordenar por severidade (mais crítico primeiro)',
+  critical: 'Severidade: mais crítico primeiro. Clique para inverter',
+  least: 'Severidade: menos crítico primeiro. Clique para remover a ordenação',
+};
+
 export function ColumnHeaderCell({
   field,
   label,
@@ -22,6 +29,8 @@ export function ColumnHeaderCell({
   containerRef,
   fallbackWidth,
   onResizeCommit,
+  sortMode,
+  onCycleSort,
 }) {
   const thRef = useRef(null);
 
@@ -99,6 +108,19 @@ export function ColumnHeaderCell({
       {...reorderProps}
     >
       {label}
+      {onCycleSort ? (
+        <span
+          className={`col-sort-btn${sortMode && sortMode !== 'none' ? ' col-sort-btn--active' : ''}`}
+          role="button"
+          aria-hidden="true"
+          title={SORT_ARIA[sortMode] ?? SORT_ARIA.none}
+          // Impede que o pointerdown chegue ao th e dispare o hold de reordenação.
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={onCycleSort}
+        >
+          {SORT_GLYPH[sortMode] ?? SORT_GLYPH.none}
+        </span>
+      ) : null}
       <span className="col-resize-handle" aria-hidden="true" onPointerDown={startResize} />
     </th>
   );

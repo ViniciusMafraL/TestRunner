@@ -982,6 +982,28 @@ tr:last-child td {
   background: var(--color-violet);
 }
 
+/* Botão de ordenação da coluna (Severity): aparece no hover do cabeçalho e
+   fica fixo quando há uma ordenação ativa. Glifos »« / » / «. */
+.col-sort-btn {
+  margin-left: var(--space-1);
+  font: var(--font-caption);
+  color: var(--color-gray-600);
+  cursor: pointer;
+  user-select: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.issue-group th:hover .col-sort-btn {
+  opacity: 1;
+}
+
+.col-sort-btn--active {
+  opacity: 1;
+  color: var(--color-violet);
+  font-weight: 700;
+}
+
 /* Reordenação segurar-e-arrastar: coluna em movimento destacada e indicador
    vertical na posição de drop — aplicados por campo em todas as tabelas. */
 .th--dragging {

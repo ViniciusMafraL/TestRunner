@@ -7,6 +7,7 @@ import { useOperations } from '../../operations/OperationContext.jsx';
 import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
 import { issueStatusCategory, issueStatusSlug } from '../../utils/statusCategory.js';
 import { matchesIssueSearch } from '../../utils/issueSearch.js';
+import { nextSeveritySort, sortIssuesBySeverity } from '../../utils/issueSort.js';
 import {
   ISSUE_FIELD_LABELS,
   ISSUE_TRACKER_ALWAYS_VISIBLE_FIELDS,
@@ -94,6 +95,8 @@ export function IssueTracker() {
   // Filtro por Tag (localização do bug) — usado sobretudo pela Sportia, que tem
   // 1 projeto e diferencia por Tag. Operações multi-projeto trocam de projeto/aba.
   const [tagFilter, setTagFilter] = useState('all');
+  // Ordenação por severidade: efêmera de propósito (volta ao padrão por id ao recarregar).
+  const [severitySort, setSeveritySort] = useState('none');
   // Seleção em lote: efêmera de propósito (ação momentânea, não preferência).
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
@@ -438,8 +441,11 @@ export function IssueTracker() {
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', ...columnWidthVars }}
         >
           {groups.map((group) => {
-            const filteredIssues = group.issues.filter(
-              (issue) => matchesIssueSearch(issue, query) && (tagFilter === 'all' || issue.tag === tagFilter),
+            const filteredIssues = sortIssuesBySeverity(
+              group.issues.filter(
+                (issue) => matchesIssueSearch(issue, query) && (tagFilter === 'all' || issue.tag === tagFilter),
+              ),
+              severitySort,
             );
             return (
               <section key={group.status} className="issue-group">
@@ -481,6 +487,10 @@ export function IssueTracker() {
                               containerRef={columnsContainerRef}
                               fallbackWidth={layout.minWidthContribution(field)}
                               onResizeCommit={layout.setColumnWidth}
+                              sortMode={field === 'severity' ? severitySort : undefined}
+                              onCycleSort={
+                                field === 'severity' ? () => setSeveritySort((mode) => nextSeveritySort(mode)) : undefined
+                              }
                             />
                           ))}
                         </tr>
