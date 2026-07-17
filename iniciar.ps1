@@ -36,10 +36,38 @@ try {
   Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue |
     ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
 } catch {}
+# Espera a porta 3001 ser liberada de fato (evita EADDRINUSE no backend novo).
+foreach ($i in 1..20) {
+  $busy = Get-NetTCPConnection -LocalPort 3001 -State Listen -ErrorAction SilentlyContinue
+  if (-not $busy) { break }
+  Start-Sleep -Milliseconds 500
+}
 
-# 1) Backend em janela propria (fica aberta mostrando os logs).
+# 1) Backend em janela propria (via _start-backend.cmd, sem quoting inline; se o
+#    npm cair, o "cmd /k" mantem a janela aberta com o erro visivel).
 Step '1/6' 'Iniciando backend na porta 3001...'
-Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', 'title TestRunner Backend & npm run start' -WorkingDirectory $backend | Out-Null
+Start-Process -FilePath 'cmd.exe' -ArgumentList '/k', '_start-backend.cmd' -WorkingDirectory $backend | Out-Null
+
+# 1b) Confirma que o backend subiu (401 = no ar, so pede login). Se nao subir,
+#     avisa alto: sem backend o tunnel retorna 502 e o site da erro de CORS.
+$backendUp = $false
+foreach ($i in 1..20) {
+  try {
+    Invoke-WebRequest 'http://localhost:3001/operations' -UseBasicParsing -TimeoutSec 3 | Out-Null
+    $backendUp = $true; break
+  } catch {
+    $code = $null
+    if ($_.Exception.Response) { $code = [int]$_.Exception.Response.StatusCode }
+    if ($code -ge 200) { $backendUp = $true; break }  # 401/403/etc = servidor respondeu
+  }
+  Start-Sleep -Seconds 1
+}
+if ($backendUp) {
+  Write-Host '      Backend no ar (porta 3001).' -ForegroundColor Green
+} else {
+  Write-Host '[ERRO] O backend nao respondeu na porta 3001. Veja a janela "TestRunner' -ForegroundColor Red
+  Write-Host '       Backend" para o erro. Sem backend o site dara erro de CORS/502.' -ForegroundColor Red
+}
 
 # 2) Tunnel: roda em segundo plano gravando a saida em log (para achar a URL).
 Step '2/6' 'Iniciando tunnel cloudflared...'

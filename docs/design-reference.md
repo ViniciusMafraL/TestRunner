@@ -97,6 +97,15 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 - Item ativo: pílula lime (`.app-nav-link.active`, raio `--radius-pill`).
 - O campo de busca saiu da sidebar (foi para o cabeçalho da Issue Tracker).
 
+### `PublishUpdateButton` *(novo, admin-only)*
+- Arquivo: `src/components/PublishUpdateButton/PublishUpdateButton.jsx`
+- O que é: ferramenta de admin no rodapé da sidebar — "Publicar atualização" (ícone de foguete) avança a **época de sessão** do servidor, forçando todos os outros usuários a relogar. Pede confirmação inline ("Forçar todos a relogar?") antes de disparar e confirma com um `role="status"` discreto. Invisível para quem não é `admin`.
+
+### `OutdatedSessionGate` *(novo)*
+- Arquivo: `src/components/OutdatedSessionGate/OutdatedSessionGate.jsx`
+- O que é: aviso **bloqueante** ("Nova versão disponível" + botão "Relogar") exibido quando a sessão desta aba é de uma época anterior. Renderizado no `Layout`, fora do `.app-shell`, para cobrir a tela inteira.
+- É modal, e não toast, de propósito: nesse estado o backend recusa **todas** as rotas de dados (inclusive leitura), então um aviso passageiro deixaria a pessoa diante de uma tela vazia. Cobrir a tela também satisfaz "bloquear criação/edição até relogar".
+
 ### `PageHeader`
 - Arquivo: `src/components/PageHeader/PageHeader.jsx`
 - O que é: cabeçalho **plano** (sem banner de fundo): título `--font-display` à esquerda + slot `right` (busca na Issue Tracker, progresso na Home, botão no Test Run).
@@ -172,6 +181,13 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 - Uma `<section class="issue-group">` por status: container branco com **borda** e raio 16, cabeçalho colapsável (`.issue-group-header`: chevron + dot do status via `.status-dot--<slug>` + nome + `count-pill` cinza) e tabela com `thead` em faixa `--color-surface-50`.
 - Células: Status = `StatusPillSelect` (se pode escrever) ou `StatusPill`; Severity = `severity-chip`; Keywords = `keyword-chip`; Tag = `tag-chip`; Version = `.cell-mono`; Attachment = `.attachment-link` (ícone + link truncado, abre em nova aba); Found By = `AvatarGroup`; Title clicável abre o modal.
 
+### `IssueTracker — Colunas ajustáveis` *(novo)*
+- **Redimensionar**: alça de 8px na borda direita de cada cabeçalho (`.col-resize-handle`, linha violeta no hover, cursor `col-resize`); arrastar ajusta a largura em todas as tabelas de grupo ao mesmo tempo (CSS vars `--col-<campo>` no container). Colunas flex (Title/Description) viram fixas ao serem redimensionadas.
+- **Reordenar**: segurar um cabeçalho por ~200ms ativa o modo de mover (`.th--dragging`, fundo violeta-tint) e arrastar escolhe a posição (indicador `.th--drop-before`/`--drop-after`, linha violeta); soltar move a coluna. Soltar/mover antes do hold = clique normal; Escape cancela.
+- **Persistência**: chave `issueTracker.columnLayout.v1` (`{ order, widths }`); botão **"Restaurar padrão"** no menu Columns reseta ordem + larguras.
+- Arquivos: `src/components/ColumnHeaderCell/ColumnHeaderCell.jsx` (th + alça), `src/hooks/useColumnLayout.js` (estado persistido), `src/hooks/useColumnReorder.js` (segurar-e-arrastar), `src/utils/columnLayout.js` (lógica pura: merge de ordem salva, clamp de largura, âncora de drop).
+- Limitação conhecida: sem auto-scroll da tabela durante o arrasto (role a tabela antes de arrastar). Coluna do checkbox é fixa.
+
 ### `IssueDetailModal`
 - Arquivo: `src/components/IssueDetailModal/IssueDetailModal.jsx`
 - O que é (redesenhado): `.modal-overlay` + painel `.form-panel.issue-detail-panel` (640px, corpo rolável). Cabeçalho com **chip de ID** mono + botão fechar (X SVG). Corpo: título grande, linha de pílulas de resumo (StatusPill/StatusPillSelect + severity-chip + tag-chip), descrição em texto corrido. Depois, seção **"Fields"** em linhas `field-row` com ícone + rótulo + valor (Found By com avatar, Version mono, Platform, Keywords chip, Store, Created In, Attachment como link). Valores vazios aparecem como "—" cinza.
@@ -210,6 +226,19 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 
 ---
 
+## Force update (versionamento de sessão)
+
+Ferramenta de admin que obriga todos a relogar — usada ao publicar uma atualização.
+
+- **Modelo**: o servidor mantém uma *época* (contador). O login carimba a sessão com a época vigente (`session.epoch`); o admin avança a época por `POST /system/bump`. Sessão de época anterior = precisa relogar.
+- **Sem polling**: a época viaja assinada dentro do próprio token JWT, e o `requireSession` (backend/src/authMiddleware.js) só compara dois inteiros — nenhum I/O por requisição. A descoberta pega carona no primeiro request que a aba já faria (o backend responde `409 OUTDATED_SESSION`), inclusive no carregamento inicial — o que também pega save local/cookie antigo.
+- **Fluxo**: `httpClient` vê o código → `src/api/outdatedSession.js` (ponte) → `SessionContext.isOutdated` → `OutdatedSessionGate`. No mock, a detecção entre abas do mesmo browser é pelo evento `storage` da chave `mock_server_epoch`.
+- **Quem publica não se autodesloga**: `POST /system/bump` devolve o token do admin já re-assinado com a época nova (`SessionContext.publishUpdate` aplica; no mock, re-carimba local).
+- **Persistência**: `backend/.server-epoch.json` (disco do backend local; sobrevive a restart — sem isso um restart devolveria todos à época 1). A pasta `backend/` já é ignorada pelo git.
+- Lógica pura compartilhada em `shared/sessionEpoch.js` (`isSessionOutdated`, `normalizeEpoch`, `OUTDATED_SESSION_CODE`) — backend e mock concordam sobre o que é "desatualizada". A comparação é `<` (não `!==`): se a época do servidor regredir, sessões mais novas seguem válidas em vez de expulsar todo mundo.
+
+---
+
 ## Índice rápido de arquivos
 
 | Tela/Componente | Arquivo |
@@ -221,6 +250,9 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 | PageHeader | `src/components/PageHeader/PageHeader.jsx` |
 | Dropdown | `src/components/Dropdown/Dropdown.jsx` |
 | Checkbox | `src/components/Checkbox/Checkbox.jsx` |
+| PublishUpdateButton (admin) | `src/components/PublishUpdateButton/PublishUpdateButton.jsx` |
+| OutdatedSessionGate | `src/components/OutdatedSessionGate/OutdatedSessionGate.jsx` |
+| Época de sessão (lógica pura) | `shared/sessionEpoch.js` |
 | StatusPill / StatusPillSelect | `src/components/StatusPill/StatusPill.jsx` |
 | FieldIcons | `src/components/FieldIcons/FieldIcons.jsx` |
 | Avatar / AvatarWithLabel / AvatarGroup | `src/components/Avatar/Avatar.jsx` |

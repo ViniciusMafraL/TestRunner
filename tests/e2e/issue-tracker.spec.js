@@ -65,4 +65,78 @@ test.describe('User Story 3 - Gestão de status no Issue Tracker', () => {
     await page.locator('a.fab').click();
     await expect(page).toHaveURL(/\/reporter/);
   });
+
+  test('redimensionar coluna pela alça reflete em todos os grupos e persiste', async ({ page }) => {
+    const firstStatusTh = page.locator('table th[data-field="status"]').first();
+    const before = await firstStatusTh.boundingBox();
+
+    const handle = firstStatusTh.locator('.col-resize-handle');
+    const handleBox = await handle.boundingBox();
+    await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(handleBox.x + handleBox.width / 2 + 60, handleBox.y + handleBox.height / 2, { steps: 5 });
+    await page.mouse.up();
+
+    const after = await firstStatusTh.boundingBox();
+    expect(after.width).toBeGreaterThan(before.width + 40);
+
+    // Mesma largura na segunda tabela de grupo (vars compartilhadas no container).
+    const secondTableTh = page.locator('table th[data-field="status"]').nth(1);
+    const second = await secondTableTh.boundingBox();
+    expect(Math.abs(second.width - after.width)).toBeLessThan(2);
+
+    await page.reload();
+    const persisted = await page.locator('table th[data-field="status"]').first().boundingBox();
+    expect(Math.abs(persisted.width - after.width)).toBeLessThan(2);
+  });
+
+  test('segurar e arrastar um cabeçalho reordena a coluna e persiste', async ({ page }) => {
+    const headerLabels = () =>
+      page
+        .locator('table')
+        .first()
+        .locator('th[data-field]')
+        .allTextContents();
+
+    expect((await headerLabels()).slice(0, 2)).toEqual(['Status', 'Project']);
+
+    const statusTh = page.locator('table th[data-field="status"]').first();
+    const titleTh = page.locator('table th[data-field="title"]').first();
+    const statusBox = await statusTh.boundingBox();
+    const titleBox = await titleTh.boundingBox();
+
+    await page.mouse.move(statusBox.x + statusBox.width / 2, statusBox.y + statusBox.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(300); // hold > 200ms ativa o modo de mover
+    await page.mouse.move(titleBox.x + titleBox.width - 4, titleBox.y + titleBox.height / 2, { steps: 8 });
+    await page.mouse.up();
+
+    expect((await headerLabels()).slice(0, 3)).toEqual(['Project', 'Title', 'Status']);
+
+    await page.reload();
+    expect((await headerLabels()).slice(0, 3)).toEqual(['Project', 'Title', 'Status']);
+  });
+
+  test('"Restaurar padrão" no menu Columns desfaz ordem e larguras customizadas', async ({ page }) => {
+    // Customiza: move Status para o fim da primeira posição via drag.
+    const statusTh = page.locator('table th[data-field="status"]').first();
+    const projectTh = page.locator('table th[data-field="project"]').first();
+    const statusBox = await statusTh.boundingBox();
+    const projectBox = await projectTh.boundingBox();
+    await page.mouse.move(statusBox.x + statusBox.width / 2, statusBox.y + statusBox.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(300);
+    await page.mouse.move(projectBox.x + projectBox.width - 4, projectBox.y + projectBox.height / 2, { steps: 5 });
+    await page.mouse.up();
+
+    const labels = await page.locator('table').first().locator('th[data-field]').allTextContents();
+    expect(labels[0]).toBe('Project');
+
+    await page.getByRole('button', { name: 'Columns' }).click();
+    await page.getByRole('button', { name: 'Restaurar padrão' }).click();
+    await page.getByRole('button', { name: 'Fechar' }).click();
+
+    const restored = await page.locator('table').first().locator('th[data-field]').allTextContents();
+    expect(restored.slice(0, 2)).toEqual(['Status', 'Project']);
+  });
 });

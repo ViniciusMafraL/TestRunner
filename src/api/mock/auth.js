@@ -1,5 +1,6 @@
 import { validateLoginPayload, roleCanWrite } from 'shared/contracts.js';
 import { ApiError } from '../ApiError.js';
+import { readMockEpoch } from './system.js';
 
 const MOCK_LATENCY_MS = 150;
 
@@ -33,6 +34,8 @@ export async function login(payload) {
         role,
         canWrite: roleCanWrite(role),
         token: 'mock-session-token',
+        // Época vigente no login — um force update posterior invalida a sessão.
+        epoch: readMockEpoch(),
       },
     };
   }
@@ -44,6 +47,7 @@ export async function login(payload) {
       role: 'guest',
       canWrite: false,
       token: 'mock-session-token',
+      epoch: readMockEpoch(),
     },
   };
 }

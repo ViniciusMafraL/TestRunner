@@ -1,5 +1,7 @@
 import axios from 'axios';
+import { OUTDATED_SESSION_CODE } from 'shared/sessionEpoch.js';
 import { ApiError } from '../ApiError.js';
+import { notifyOutdatedSession } from '../outdatedSession.js';
 import { readStoredSession } from '../../auth/sessionStorage.js';
 import { readCurrentOperation, readCurrentProject } from '../../operations/operationStorage.js';
 
@@ -25,6 +27,12 @@ export async function request(config) {
   } catch (error) {
     const status = error.response?.status ?? 0;
     const apiError = error.response?.data?.error;
+    // O admin publicou uma atualização: a sessão desta aba é de uma época
+    // anterior e o backend recusa tudo até relogar. Avisa a app inteira aqui,
+    // de carona na requisição que o usuário já faria — sem polling.
+    if (apiError?.code === OUTDATED_SESSION_CODE) {
+      notifyOutdatedSession();
+    }
     throw new ApiError(status, apiError?.code ?? 'UNKNOWN_ERROR', apiError?.message ?? error.message);
   }
 }

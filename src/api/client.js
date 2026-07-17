@@ -12,6 +12,8 @@ const impl = import.meta.env.VITE_API_MODE === 'real' ? realApi : mockApi;
 export const api = {
   login: impl.login,
   logout: impl.logout,
+  getSystemState: impl.getSystemState,
+  bumpServerVersion: impl.bumpServerVersion,
   getHomeSummary: impl.getHomeSummary,
   getIssuesGroupedByStatus: impl.getIssuesGroupedByStatus,
   updateIssueStatus: impl.updateIssueStatus,

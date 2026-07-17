@@ -5,6 +5,7 @@ import { useTheme } from '../../hooks/useTheme.js';
 import { APP_VERSION, BUILD_TIME } from '../../version.js';
 import { Avatar } from '../Avatar/Avatar.jsx';
 import { Dropdown } from '../Dropdown/Dropdown.jsx';
+import { PublishUpdateButton } from '../PublishUpdateButton/PublishUpdateButton.jsx';
 
 function OperationSwitcher() {
   const { operations, currentOperation, selectOperation } = useOperations();
@@ -161,6 +162,7 @@ export function SideMenu() {
       </ul>
 
       <div className="app-sidebar-footer">
+        <PublishUpdateButton />
         <button type="button" className="app-logout" onClick={toggleTheme}>
           {theme === 'dark' ? SunIcon : MoonIcon}
           {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}

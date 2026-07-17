@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Checkbox } from '../Checkbox/Checkbox.jsx';
 
-export function ColumnVisibilityMenu({ fields, isVisible, onToggle, alwaysVisibleFields = [] }) {
+export function ColumnVisibilityMenu({ fields, isVisible, onToggle, alwaysVisibleFields = [], onResetLayout }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -36,9 +36,16 @@ export function ColumnVisibilityMenu({ fields, isVisible, onToggle, alwaysVisibl
                 </Checkbox>
               ))}
             </div>
-            <button type="button" className="button-primary" style={{ marginTop: 'var(--space-4)' }} onClick={() => setOpen(false)}>
-              Fechar
-            </button>
+            <div style={{ display: 'flex', gap: 'var(--space-2)', marginTop: 'var(--space-4)' }}>
+              {onResetLayout ? (
+                <button type="button" className="button-secondary" onClick={onResetLayout}>
+                  Restaurar padrão
+                </button>
+              ) : null}
+              <button type="button" className="button-primary" onClick={() => setOpen(false)}>
+                Fechar
+              </button>
+            </div>
           </div>
         </div>
       ) : null}

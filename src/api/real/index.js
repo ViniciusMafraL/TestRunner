@@ -67,6 +67,14 @@ export function addProject(op, name) {
   return request({ method: 'POST', url: `/operations/${encodeURIComponent(op)}/projects`, data: { name } });
 }
 
+export function getSystemState() {
+  return request({ method: 'GET', url: '/system' });
+}
+
+export function bumpServerVersion() {
+  return request({ method: 'POST', url: '/system/bump' });
+}
+
 export function getTestRuns() {
   return request({ method: 'GET', url: '/test-runs' });
 }

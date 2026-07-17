@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Status } from 'shared/enums.js';
 import { api } from '../../api/client.js';
@@ -15,7 +15,10 @@ import {
 } from '../../utils/issueFields.js';
 import { useOptimisticUpdate } from '../../hooks/useOptimisticUpdate.js';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility.js';
+import { useColumnLayout } from '../../hooks/useColumnLayout.js';
+import { useColumnReorder } from '../../hooks/useColumnReorder.js';
 import { useLocalStorageState } from '../../hooks/useLocalStorageState.js';
+import { DEFAULT_COLUMN_WIDTHS, FLEX_COLUMNS } from '../../utils/columnLayout.js';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { IssueDetailModal } from '../../components/IssueDetailModal/IssueDetailModal.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
@@ -27,32 +30,10 @@ import { KeywordChips } from '../../components/KeywordChips/KeywordChips.jsx';
 import { FloatingActionButton } from '../../components/FloatingActionButton/FloatingActionButton.jsx';
 import { SelectionActionsBar } from '../../components/SelectionActionsBar/SelectionActionsBar.jsx';
 import { Checkbox } from '../../components/Checkbox/Checkbox.jsx';
-
-const COLUMN_WIDTHS = {
-  checkbox: 24,
-  id: 90,
-  status: 120,
-  project: 130,
-  severity: 110,
-  tag: 90,
-  title: 220,
-  description: 220,
-  attachment: 160,
-  foundBy: 150,
-  version: 90,
-  platform: 100,
-  keywords: 120,
-  store: 150,
-  createdIn: 110,
-};
-
-/**
- * Colunas sem largura fixa: no table-layout fixed, elas absorvem toda a sobra
- * de espaço da tabela (como o Title da Home), mantendo as demais colunas justas.
- */
-const FLEX_COLUMNS = ['title', 'description'];
+import { ColumnHeaderCell } from '../../components/ColumnHeaderCell/ColumnHeaderCell.jsx';
 
 const VISIBILITY_STORAGE_KEY = 'issueTracker.visibleColumns.v1';
+const LAYOUT_STORAGE_KEY = 'issueTracker.columnLayout.v1';
 
 /**
  * Status literal gravado ao arquivar em lote. Está fora do enum de Status de
@@ -125,9 +106,29 @@ export function IssueTracker() {
     ISSUE_TRACKER_DEFAULT_VISIBLE_FIELDS,
     ISSUE_TRACKER_ALWAYS_VISIBLE_FIELDS,
   );
+  const layout = useColumnLayout(LAYOUT_STORAGE_KEY, ISSUE_TRACKER_COLUMN_ORDER, DEFAULT_COLUMN_WIDTHS, FLEX_COLUMNS);
+  const reorder = useColumnReorder({ onMove: layout.moveColumn });
+  const columnsContainerRef = useRef(null);
 
-  const visibleColumns = ISSUE_TRACKER_COLUMN_ORDER.filter((field) => isVisible(field));
-  const tableMinWidth = COLUMN_WIDTHS.checkbox + visibleColumns.reduce((total, field) => total + (COLUMN_WIDTHS[field] ?? 120), 0);
+  const visibleColumns = layout.order.filter((field) => isVisible(field));
+  const tableMinWidth =
+    DEFAULT_COLUMN_WIDTHS.checkbox + visibleColumns.reduce((total, field) => total + layout.minWidthContribution(field), 0);
+
+  // Larguras commitadas viram CSS vars no container dos grupos — todas as
+  // tabelas de grupo compartilham a mesma largura por coluna.
+  const columnWidthVars = Object.fromEntries(
+    visibleColumns
+      .filter((field) => layout.effectiveWidth(field) != null)
+      .map((field) => [`--col-${field}`, `${layout.effectiveWidth(field)}px`]),
+  );
+  const lastVisibleField = visibleColumns[visibleColumns.length - 1];
+
+  function dropSideFor(field) {
+    if (!reorder.dragField || !reorder.dropTarget) return null;
+    if (reorder.dropTarget.anchor === field) return 'before';
+    if (reorder.dropTarget.anchor === null && field === lastVisibleField) return 'after';
+    return null;
+  }
 
   const allIssues = groups.flatMap((group) => group.issues);
   const openCount = allIssues.filter((issue) => issueStatusCategory(issue.status) === 'aberta').length;
@@ -405,6 +406,7 @@ export function IssueTracker() {
           isVisible={isVisible}
           onToggle={toggle}
           alwaysVisibleFields={ISSUE_TRACKER_ALWAYS_VISIBLE_FIELDS}
+          onResetLayout={layout.resetLayout}
         />
         {tagValues.length > 0 ? (
           <Dropdown
@@ -430,7 +432,11 @@ export function IssueTracker() {
       <div style={{ position: 'relative' }}>
         {loading ? <Loading variant="overlay" /> : null}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+        <div
+          ref={columnsContainerRef}
+          className={reorder.dragField ? 'is-col-dragging' : undefined}
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', ...columnWidthVars }}
+        >
           {groups.map((group) => {
             const filteredIssues = group.issues.filter(
               (issue) => matchesIssueSearch(issue, query) && (tagFilter === 'all' || issue.tag === tagFilter),
@@ -453,7 +459,7 @@ export function IssueTracker() {
                     <table className="table-fixed" style={{ minWidth: tableMinWidth }}>
                       <thead>
                         <tr>
-                          <th style={{ width: COLUMN_WIDTHS.checkbox }}>
+                          <th style={{ width: DEFAULT_COLUMN_WIDTHS.checkbox }}>
                             <Checkbox
                               ariaLabel={`Selecionar todas as issues do grupo ${statusLabel(group.status)}`}
                               checked={
@@ -465,9 +471,17 @@ export function IssueTracker() {
                             />
                           </th>
                           {visibleColumns.map((field) => (
-                            <th key={field} style={{ width: FLEX_COLUMNS.includes(field) ? undefined : COLUMN_WIDTHS[field] }}>
-                              {ISSUE_FIELD_LABELS[field]}
-                            </th>
+                            <ColumnHeaderCell
+                              key={field}
+                              field={field}
+                              label={ISSUE_FIELD_LABELS[field]}
+                              isDragging={reorder.dragField === field}
+                              dropSide={dropSideFor(field)}
+                              reorderProps={reorder.getHeaderProps(field)}
+                              containerRef={columnsContainerRef}
+                              fallbackWidth={layout.minWidthContribution(field)}
+                              onResizeCommit={layout.setColumnWidth}
+                            />
                           ))}
                         </tr>
                       </thead>

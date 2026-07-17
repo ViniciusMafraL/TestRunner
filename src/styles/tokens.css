@@ -950,8 +950,56 @@ tr:last-child td {
 }
 
 .issue-group th {
+  position: relative;
   background: var(--color-surface-50);
   border-bottom: 1px solid var(--color-border-200);
+}
+
+/* Alça de redimensionar coluna: faixa de 8px na borda direita do th, com uma
+   linha de 2px que aparece no hover — arrasta para ajustar a largura. */
+.col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.col-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 3px;
+  width: 2px;
+  height: 100%;
+  background: transparent;
+}
+
+.col-resize-handle:hover::after,
+.col-resize-handle:active::after {
+  background: var(--color-violet);
+}
+
+/* Reordenação segurar-e-arrastar: coluna em movimento destacada e indicador
+   vertical na posição de drop — aplicados por campo em todas as tabelas. */
+.th--dragging {
+  background: var(--tag-chip-bg);
+  cursor: grabbing;
+}
+
+.th--drop-before {
+  box-shadow: inset 2px 0 0 var(--color-violet);
+}
+
+.th--drop-after {
+  box-shadow: inset -2px 0 0 var(--color-violet);
+}
+
+.is-col-dragging {
+  cursor: grabbing;
+  user-select: none;
 }
 
 .issue-group th:first-child,

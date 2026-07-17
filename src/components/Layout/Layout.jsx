@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { OperationProvider } from '../../operations/OperationContext.jsx';
 import { SideMenu } from '../SideMenu/SideMenu.jsx';
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary.jsx';
+import { OutdatedSessionGate } from '../OutdatedSessionGate/OutdatedSessionGate.jsx';
 
 export function Layout() {
   return (
@@ -14,6 +15,8 @@ export function Layout() {
           </ErrorBoundary>
         </main>
       </div>
+      {/* Fora do shell para cobrir a tela inteira, sidebar inclusive. */}
+      <OutdatedSessionGate />
     </OperationProvider>
   );
 }

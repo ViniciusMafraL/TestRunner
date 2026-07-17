@@ -11,3 +11,4 @@ export {
 export { getTestRuns, createTestRun, updateTestRunStatus } from './testRuns.js';
 export { getUsers } from './users.js';
 export { getOperations, getProjects, addProject } from './operations.js';
+export { getSystemState, bumpServerVersion } from './system.js';

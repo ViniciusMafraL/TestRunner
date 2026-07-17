@@ -12,6 +12,7 @@ import { issuesRouter } from './routes/issues.js';
 import { testRunsRouter } from './routes/testRuns.js';
 import { usersRouter } from './routes/users.js';
 import { operationsRouter } from './routes/operations.js';
+import { systemRouter } from './routes/system.js';
 
 export function createApp() {
   const app = express();
@@ -27,6 +28,8 @@ export function createApp() {
   app.use('/test-runs', requireSession, requireOperation, testRunsRouter);
   app.use('/operations', requireSession, operationsRouter);
   app.use('/users', requireSession, usersRouter);
+  // Ferramentas de sistema (publicar atualização) — sessão + papel admin.
+  app.use('/system', requireSession, systemRouter);
 
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {

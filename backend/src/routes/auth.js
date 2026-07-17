@@ -4,6 +4,7 @@ import { validateLoginPayload, roleCanWrite } from 'shared/contracts.js';
 import { config } from '../config.js';
 import { HttpError } from '../HttpError.js';
 import { signSession } from '../sessionToken.js';
+import { getEpoch } from '../systemState.js';
 import { upsertUserOnLogin } from '../repositories/usersRepository.js';
 import { asyncHandler } from '../asyncHandler.js';
 
@@ -52,6 +53,9 @@ authRouter.post(
         role: user.role,
         canWrite: roleCanWrite(user.role),
         operations: user.operations,
+        // Época vigente no momento do login: um force update posterior invalida
+        // esta sessão (ver requireSession / POST /system/bump).
+        epoch: getEpoch(),
       };
       res.json({ session: { ...session, token: signSession(session) } });
       return;
@@ -65,6 +69,7 @@ authRouter.post(
       role: 'guest',
       canWrite: false,
       operations: '',
+      epoch: getEpoch(),
     };
     res.json({ session: { ...session, token: signSession(session) } });
   }),
