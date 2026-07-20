@@ -5,11 +5,27 @@ describe('groupIssuesByStatus', () => {
   it('agrupa cada issue em seu status conhecido', () => {
     const issues = [
       { id: '1', status: 'Open' },
-      { id: '2', status: 'Done' },
+      { id: '2', status: 'Fixed' },
     ];
     const groups = groupIssuesByStatus(issues);
     expect(groups.find((g) => g.status === 'Open').issues).toHaveLength(1);
-    expect(groups.find((g) => g.status === 'Done').issues).toHaveLength(1);
+    expect(groups.find((g) => g.status === 'Fixed').issues).toHaveLength(1);
+  });
+
+  it('dobra issues "Reopen" dentro da seção "Open" (sem seção própria)', () => {
+    const issues = [
+      { id: '1', status: 'Open' },
+      { id: '2', status: 'Reopen' },
+    ];
+    const groups = groupIssuesByStatus(issues);
+    const openGroup = groups.find((g) => g.status === 'Open');
+    expect(openGroup.issues.map((i) => i.id)).toEqual(['1', '2']);
+    expect(groups.some((g) => g.status === 'Reopen')).toBe(false);
+  });
+
+  it('não cria seção para o status aposentado "Done"', () => {
+    const groups = groupIssuesByStatus([{ id: '1', status: 'Open' }]);
+    expect(groups.some((g) => g.status === 'Done')).toBe(false);
   });
 
   it('coloca status desconhecido no grupo unrecognized sem lançar erro', () => {

@@ -13,7 +13,7 @@ describe('PATCH /issues/:id/status (contract)', () => {
   });
 
   it('retorna 409 WRITE_CONFLICT para simular falha de gravação', async () => {
-    await expect(updateIssueStatus('BUG-002', 'Done')).rejects.toMatchObject({
+    await expect(updateIssueStatus('BUG-002', 'Fixed')).rejects.toMatchObject({
       status: 409,
       code: 'WRITE_CONFLICT',
     });

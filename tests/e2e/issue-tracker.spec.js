@@ -14,7 +14,7 @@ test.describe('User Story 3 - Gestão de status no Issue Tracker', () => {
   test('reverte status ao anterior quando a gravação falha', async ({ page }) => {
     const row = page.getByRole('row').filter({ hasText: 'Placar não atualiza em tempo real' });
     await row.getByRole('combobox').click();
-    await page.getByRole('option', { name: 'Done' }).click();
+    await page.getByRole('option', { name: 'Fixed' }).click();
     await expect(page.getByRole('alert')).toBeVisible();
     await expect(row.getByRole('combobox')).toContainText('In progress');
   });

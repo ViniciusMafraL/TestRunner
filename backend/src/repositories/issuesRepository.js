@@ -3,7 +3,14 @@ import { findLatestVersion } from 'shared/version.js';
 import { validateIssuePayload, validateIssueUpdatePayload } from 'shared/contracts.js';
 import { groupIssuesByStatus } from 'shared/groupByStatus.js';
 import { readRange, appendRow, updateRow } from '../googleSheets.js';
+import { withLock } from '../keyedMutex.js';
 import { HttpError } from '../HttpError.js';
+
+// Chave do lock de escrita: uma corrente por aba (planilha + gid). Escritas na
+// mesma aba serializam; abas/projetos distintos não esperam um pelo outro.
+function writeKey(operation, project) {
+  return `${operation.spreadsheetId}:${project.gid}`;
+}
 
 // Ordem exata das colunas da aba de issues, padrão em todas as operações.
 // Com "projeto = aba", a issue vive na aba do projeto; `project` é derivado do
@@ -100,42 +107,51 @@ export async function createIssue(operation, project, payload) {
     throw new HttpError(422, result.error.code, result.error.message);
   }
 
-  const issues = await listIssues(operation, project);
-  const maxSeq = issues.reduce((max, issue) => {
-    const match = issue.id?.match(/^BUG-(\d+)$/);
-    return match ? Math.max(max, Number(match[1])) : max;
-  }, 0);
+  // Read-modify-write serializado por aba: sem o lock, dois envios simultâneos
+  // leem o mesmo maxSeq e criam duas issues com o MESMO id (o append do Sheets
+  // nunca rejeita duplicata). Com o lock, o segundo espera e recebe o id seguinte.
+  return withLock(writeKey(operation, project), async () => {
+    const issues = await listIssues(operation, project);
+    const maxSeq = issues.reduce((max, issue) => {
+      const match = issue.id?.match(/^BUG-(\d+)$/);
+      return match ? Math.max(max, Number(match[1])) : max;
+    }, 0);
 
-  const issue = {
-    severity: '',
-    tag: '',
-    description: '',
-    attachment: '',
-    foundBy: '',
-    platform: '',
-    keywords: '',
-    store: '',
-    responsible: '',
-    ...payload,
-    id: `BUG-${String(maxSeq + 1).padStart(3, '0')}`,
-    status: 'Open',
-    createdIn: new Date().toISOString().slice(0, 10),
-    project: project.name, // project derivado da aba, ignora o que vier no payload
-  };
+    const issue = {
+      severity: '',
+      tag: '',
+      description: '',
+      attachment: '',
+      foundBy: '',
+      platform: '',
+      keywords: '',
+      store: '',
+      responsible: '',
+      ...payload,
+      id: `BUG-${String(maxSeq + 1).padStart(3, '0')}`,
+      status: 'Open',
+      createdIn: new Date().toISOString().slice(0, 10),
+      project: project.name, // project derivado da aba, ignora o que vier no payload
+    };
 
-  await appendRow(project.gid, issueToRow(issue), operation.spreadsheetId);
-  return issue;
+    await appendRow(project.gid, issueToRow(issue), operation.spreadsheetId);
+    return issue;
+  });
 }
 
 export async function updateIssueStatus(operation, project, id, status) {
-  const issues = await listIssuesWithRowNumbers(operation, project);
-  const issue = issues.find((entry) => entry.id === id);
-  if (!issue) {
-    throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
-  }
-  const updated = { ...issue, status };
-  await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);
-  return withoutRowNumber(updated);
+  // Serializado por aba: mantém o achar-linha → gravar atômico, sem corrida de
+  // rowNumber com outra escrita concorrente na mesma aba.
+  return withLock(writeKey(operation, project), async () => {
+    const issues = await listIssuesWithRowNumbers(operation, project);
+    const issue = issues.find((entry) => entry.id === id);
+    if (!issue) {
+      throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
+    }
+    const updated = { ...issue, status };
+    await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);
+    return withoutRowNumber(updated);
+  });
 }
 
 export async function updateIssue(operation, project, id, payload) {
@@ -143,12 +159,14 @@ export async function updateIssue(operation, project, id, payload) {
   if (!result.valid) {
     throw new HttpError(422, result.error.code, result.error.message);
   }
-  const issues = await listIssuesWithRowNumbers(operation, project);
-  const issue = issues.find((entry) => entry.id === id);
-  if (!issue) {
-    throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
-  }
-  const updated = { ...issue, ...result.patch, project: project.name };
-  await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);
-  return withoutRowNumber(updated);
+  return withLock(writeKey(operation, project), async () => {
+    const issues = await listIssuesWithRowNumbers(operation, project);
+    const issue = issues.find((entry) => entry.id === id);
+    if (!issue) {
+      throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
+    }
+    const updated = { ...issue, ...result.patch, project: project.name };
+    await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);
+    return withoutRowNumber(updated);
+  });
 }

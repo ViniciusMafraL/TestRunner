@@ -20,7 +20,7 @@ describe('PATCH /issues/:id (contract)', () => {
     const updated = await updateIssue('BUG-001', {
       title: 'Outro título',
       id: 'BUG-999',
-      status: 'Done',
+      status: 'Fixed',
       createdIn: '2000-01-01',
       naoExiste: 'x',
     });
