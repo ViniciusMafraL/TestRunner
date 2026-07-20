@@ -7,11 +7,11 @@ export function issueStatusCategory(status) {
 /* Slug visual por status individual — cores de pill/dot do redesign do Issue Tracker. */
 const ISSUE_STATUS_SLUG = {
   Open: 'open',
+  Reopen: 'reopen',
   'To review': 'review',
   'In progress': 'progress',
   'By Design': 'bydesign',
   Fixed: 'validated',
-  Done: 'validated',
   Closed: 'closed',
   "Won't fix": 'wontfix',
 };

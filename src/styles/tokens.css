@@ -21,6 +21,8 @@
   /* Status por valor — pill tint + cor do ponto (design "Issue Tracker 2.0") */
   --status-open-dot: #7c3aed;
   --status-open-bg: #ede9fe;
+  --status-reopen-dot: #f59e0b;
+  --status-reopen-bg: #fef3c7;
   --status-review-dot: #ec4899;
   --status-review-bg: #fce7f3;
   --status-progress-dot: #3b82f6;
@@ -132,6 +134,7 @@
 
   /* Tints translúcidos: as pílulas de status assentam sobre painéis escuros. */
   --status-open-bg: rgba(124, 58, 237, 0.28);
+  --status-reopen-bg: rgba(245, 158, 11, 0.24);
   --status-review-bg: rgba(236, 72, 153, 0.24);
   --status-progress-bg: rgba(59, 130, 246, 0.24);
   --status-bydesign-bg: rgba(20, 184, 166, 0.24);
@@ -632,6 +635,11 @@ tr:last-child td {
   background: var(--status-open-bg);
 }
 
+.status-pill--reopen {
+  --status-dot-color: var(--status-reopen-dot);
+  background: var(--status-reopen-bg);
+}
+
 .status-pill--review {
   --status-dot-color: var(--status-review-dot);
   background: var(--status-review-bg);
@@ -686,6 +694,10 @@ tr:last-child td {
 
 .status-dot--open {
   --status-dot-color: var(--status-open-dot);
+}
+
+.status-dot--reopen {
+  --status-dot-color: var(--status-reopen-dot);
 }
 
 .status-dot--review {

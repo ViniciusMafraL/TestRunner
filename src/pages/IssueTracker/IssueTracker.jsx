@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Status } from 'shared/enums.js';
 import { api } from '../../api/client.js';
-import { UNRECOGNIZED_STATUS_KEY } from 'shared/groupByStatus.js';
+import { UNRECOGNIZED_STATUS_KEY, groupIssuesByStatus } from 'shared/groupByStatus.js';
 import { useOperations } from '../../operations/OperationContext.jsx';
 import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
 import { issueStatusCategory, issueStatusSlug } from '../../utils/statusCategory.js';
@@ -191,15 +191,10 @@ export function IssueTracker() {
 
   function applyStatusLocally(id, status) {
     setGroups((previousGroups) => {
-      const issues = previousGroups.flatMap((group) => group.issues);
-      const updatedIssues = issues.map((issue) => (issue.id === id ? { ...issue, status } : issue));
-      const knownStatuses = [...Status, UNRECOGNIZED_STATUS_KEY];
-      return knownStatuses.map((groupStatus) => ({
-        status: groupStatus,
-        issues: updatedIssues.filter((issue) =>
-          groupStatus === UNRECOGNIZED_STATUS_KEY ? !Status.includes(issue.status) : issue.status === groupStatus,
-        ),
-      }));
+      const updatedIssues = previousGroups
+        .flatMap((group) => group.issues)
+        .map((issue) => (issue.id === id ? { ...issue, status } : issue));
+      return groupIssuesByStatus(updatedIssues);
     });
   }
 

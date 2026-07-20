@@ -5,7 +5,7 @@ import { IssueTracker } from '../../src/pages/IssueTracker/IssueTracker.jsx';
 import { renderWithProviders, seedSession } from '../testUtils.jsx';
 
 const CRITICAL_TITLE = 'Crash ao abrir o Hub em dispositivos Android'; // BUG-001, Critical, Open
-const NORMAL_TITLE = 'Issue de exemplo com versão malformada'; // BUG-008, Normal, Open
+const NORMAL_TITLE = 'Issue reaberta com versão malformada'; // BUG-008, Normal, Reopen (dobra na seção Open)
 
 // Ordem dos títulos no primeiro grupo de status (Open) da primeira tabela.
 function openGroupTitles(container) {

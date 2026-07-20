@@ -29,9 +29,9 @@ describe('IssueTracker - atualização otimista (componente)', () => {
     await screen.findByText('Placar não atualiza em tempo real');
     const initialRow = screen.getByText('Placar não atualiza em tempo real').closest('tr');
     await userEvent.click(within(initialRow).getByRole('combobox'));
-    await userEvent.click(within(initialRow).getByRole('option', { name: 'Done' }));
+    await userEvent.click(within(initialRow).getByRole('option', { name: 'Fixed' }));
 
-    // A issue muda de seção (In progress -> Done) assim que a atualização
+    // A issue muda de seção (In progress -> Fixed) assim que a atualização
     // otimista é aplicada, então a linha/combobox originais são desmontados;
     // é preciso reconsultar o DOM em vez de reusar a referência antiga.
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
