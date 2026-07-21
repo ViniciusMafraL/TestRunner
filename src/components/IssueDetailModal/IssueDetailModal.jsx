@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Keywords, Platform, Severity, Status, Store } from 'shared/enums.js';
-import { ISSUE_EDITABLE_FIELDS } from 'shared/contracts.js';
+import { Keywords, Platform, Severity, Store } from 'shared/enums.js';
+import { ISSUE_EDITABLE_FIELDS, allowedStatusTargetsForRole } from 'shared/contracts.js';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { useOperations } from '../../operations/OperationContext.jsx';
 import { useQaUsers } from '../../hooks/useQaUsers.js';
@@ -49,7 +49,7 @@ function buildForm(issue) {
 }
 
 function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
-  const { canWrite } = useSession();
+  const { canWrite, session } = useSession();
   const { tagValues } = useOperations();
   const qaUsers = useQaUsers();
   const [editing, setEditing] = useState(false);
@@ -161,16 +161,21 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
               <h2 className="issue-detail-title">{issue.title}</h2>
 
               <div className="issue-detail-pills">
-                {canWrite && onStatusChange ? (
-                  <StatusPillSelect
-                    value={issue.status}
-                    options={Status}
-                    onChange={(status) => onStatusChange(issue.id, status)}
-                    ariaLabel="Status"
-                  />
-                ) : (
-                  <StatusPill status={issue.status} />
-                )}
+                {(() => {
+                  // Opções conforme o papel (mesma política do Issue Tracker):
+                  // dev só move Open→In progress/To review; viewer/convidado texto.
+                  const targets = allowedStatusTargetsForRole(session?.role, issue.status);
+                  return targets.length > 0 && onStatusChange ? (
+                    <StatusPillSelect
+                      value={issue.status}
+                      options={targets}
+                      onChange={(status) => onStatusChange(issue.id, status)}
+                      ariaLabel="Status"
+                    />
+                  ) : (
+                    <StatusPill status={issue.status} />
+                  );
+                })()}
                 {issue.severity ? (
                   <span className={`severity-chip severity-chip--${SEVERITY_SLUG[issue.severity] ?? 'muted'}`}>{issue.severity}</span>
                 ) : null}

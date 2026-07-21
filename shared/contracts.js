@@ -1,3 +1,5 @@
+import { Status } from './enums.js';
+
 // `project` NÃO entra aqui: agora é derivado da aba (página) selecionada da
 // planilha da operação, não um campo digitado. O backend/mock carimba o
 // project = nome da aba ao criar/devolver a issue.
@@ -110,14 +112,72 @@ export function validateTestRunPayload(payload) {
 
 /**
  * Papéis do sistema (aba da planilha separada de usuários) e o que cada um
- * pode: admin/qa escrevem; viewer e convidado só leem. O papel de um e-mail é
- * editado direto na planilha de usuários — sem deploy.
+ * pode. Escrita completa (criar issue, editar campos, projetos, evidência) é só
+ * de admin/qa (WRITE_ROLES). `developer` é somente leitura na maior parte da
+ * ferramenta, com uma exceção pontual: mover issues `Open` para In progress/To
+ * review no Issue Tracker (ver allowedStatusTargetsForRole). `viewer` e
+ * convidado só leem. O papel de um e-mail é editado direto na planilha de
+ * usuários — sem deploy.
  */
-export const USER_ROLES = ['admin', 'qa', 'viewer'];
+export const USER_ROLES = ['admin', 'qa', 'developer', 'viewer'];
 export const WRITE_ROLES = ['admin', 'qa'];
+// Papel de toda conta Google nova (antes era 'viewer'). Ver upsertUserOnLogin.
+export const NEW_ACCOUNT_ROLE = 'developer';
 
 export function roleCanWrite(role) {
   return WRITE_ROLES.includes(role);
+}
+
+/**
+ * Papel efetivo no login a partir da célula "Role" da planilha. Célula **vazia**
+ * (conta ainda sem papel atribuído) adota o baseline `developer` — assim contas
+ * novas E contas antigas sem papel entram como desenvolvedor. Papel reconhecido
+ * é mantido; valor não reconhecido cai em `viewer` (menor privilégio).
+ */
+export function loginRoleFor(rawRole) {
+  const role = String(rawRole ?? '').trim().toLowerCase();
+  if (role === '') return NEW_ACCOUNT_ROLE;
+  return USER_ROLES.includes(role) ? role : 'viewer';
+}
+
+/**
+ * Navegação por papel. admin/qa têm as 5 telas; os demais (developer, viewer,
+ * convidado) veem só Home + Issue Tracker. Fonte única usada pelo menu lateral
+ * (esconder links) e pelo gate de rota (bloquear URL direta).
+ */
+export const RESTRICTED_SECTIONS = ['/home', '/issue-tracker'];
+
+export function roleHasFullNav(role) {
+  return WRITE_ROLES.includes(role);
+}
+
+export function roleCanAccessSection(role, basePath) {
+  return roleHasFullNav(role) || RESTRICTED_SECTIONS.includes(basePath);
+}
+
+/**
+ * Opções de status que o seletor da UI oferece a um papel, a partir do status
+ * atual da issue. admin/qa veem o enum completo; developer só vê In progress/To
+ * review quando a issue está `Open`; viewer/convidado não editam (lista vazia =
+ * pílula somente leitura). Para a imposição no servidor use canRoleSetStatus.
+ */
+export function allowedStatusTargetsForRole(role, currentStatus) {
+  if (role === 'admin' || role === 'qa') return Status;
+  if (role === 'developer') {
+    return currentStatus === 'Open' ? ['In progress', 'To review'] : [];
+  }
+  return [];
+}
+
+/**
+ * Pode este papel gravar `nextStatus` numa issue que está em `currentStatus`?
+ * Imposição do servidor (e do mock). admin/qa gravam QUALQUER valor — inclusive
+ * fora do enum (ex.: "Arquivado" do arquivamento em lote), preservando o
+ * contrato de "aceita dado sujo". Os demais seguem a lista de opções do papel.
+ */
+export function canRoleSetStatus(role, currentStatus, nextStatus) {
+  if (role === 'admin' || role === 'qa') return true;
+  return allowedStatusTargetsForRole(role, currentStatus).includes(nextStatus);
 }
 
 /**

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { api } from '../api/client.js';
+import { useSession } from '../auth/SessionContext.jsx';
 import {
   readCurrentOperation,
   writeCurrentOperation,
@@ -18,11 +19,14 @@ const OperationContext = createContext(null);
  * X-Operation / X-Project) já use a operação/projeto novos.
  */
 export function OperationProvider({ children }) {
+  const { session } = useSession();
   const [operations, setOperations] = useState([]);
   const [currentOperation, setCurrentOperation] = useState(() => readCurrentOperation());
   const [projects, setProjects] = useState([]);
   const [currentProject, setCurrentProject] = useState(() => readCurrentProject());
 
+  // Rebusca ao mudar o token da sessão: após a FTUE, applySession reemite a
+  // sessão com a operação anexada; sem isto a lista ficaria vazia até um reload.
   useEffect(() => {
     let cancelled = false;
     api
@@ -42,7 +46,7 @@ export function OperationProvider({ children }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session?.token]);
 
   useEffect(() => {
     if (!currentOperation) return undefined;

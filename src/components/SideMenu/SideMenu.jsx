@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { roleCanAccessSection } from 'shared/contracts.js';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { useOperations } from '../../operations/OperationContext.jsx';
 import { useTheme } from '../../hooks/useTheme.js';
@@ -129,9 +130,20 @@ const SECTIONS = [
   { to: '/reporter', label: 'Report', icon: ReportIcon },
 ];
 
+// Rótulo do papel para o card de sessão. developer não tem escrita completa,
+// mas também não é "somente leitura" pura (move issues Open), então ganha rótulo
+// próprio em vez do genérico canWrite.
+function roleLabel(role, canWrite) {
+  if (role === 'developer') return 'Desenvolvedor';
+  return canWrite ? 'Acesso completo' : 'Somente leitura';
+}
+
 export function SideMenu() {
   const { session, canWrite, logout } = useSession();
   const { theme, toggleTheme } = useTheme();
+  // Papéis sem navegação completa (developer, viewer, convidado) veem só Home +
+  // Issue Tracker; admin/qa veem as 5 seções.
+  const sections = SECTIONS.filter((section) => roleCanAccessSection(session?.role, section.to));
 
   return (
     <nav className="app-sidebar" aria-label="Navegação principal">
@@ -151,7 +163,7 @@ export function SideMenu() {
       <ProjectSwitcher />
 
       <ul className="app-nav-list">
-        {SECTIONS.map((section) => (
+        {sections.map((section) => (
           <li key={section.to}>
             <NavLink to={section.to} className={({ isActive }) => `app-nav-link${isActive ? ' active' : ''}`}>
               <span className="app-nav-icon">{section.icon}</span>
@@ -175,7 +187,7 @@ export function SideMenu() {
           <Avatar name={session?.displayName} />
           <span>
             <div style={{ font: 'var(--font-label)', fontWeight: 700 }}>{session?.displayName}</div>
-            <div className="app-session-role">{canWrite ? 'Acesso completo' : 'Somente leitura'}</div>
+            <div className="app-session-role">{roleLabel(session?.role, canWrite)}</div>
           </span>
         </div>
         <div className="app-version" title={BUILD_TIME ? `Build de ${BUILD_TIME}` : undefined}>

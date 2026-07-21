@@ -1,6 +1,6 @@
 import { StatusGroup } from 'shared/enums.js';
 import { findLatestVersion } from 'shared/version.js';
-import { validateIssuePayload, validateIssueUpdatePayload } from 'shared/contracts.js';
+import { validateIssuePayload, validateIssueUpdatePayload, canRoleSetStatus } from 'shared/contracts.js';
 import { groupIssuesByStatus } from 'shared/groupByStatus.js';
 import { readRange, appendRow, updateRow } from '../googleSheets.js';
 import { withLock } from '../keyedMutex.js';
@@ -139,7 +139,7 @@ export async function createIssue(operation, project, payload) {
   });
 }
 
-export async function updateIssueStatus(operation, project, id, status) {
+export async function updateIssueStatus(operation, project, id, status, role) {
   // Serializado por aba: mantém o achar-linha → gravar atômico, sem corrida de
   // rowNumber com outra escrita concorrente na mesma aba.
   return withLock(writeKey(operation, project), async () => {
@@ -147,6 +147,11 @@ export async function updateIssueStatus(operation, project, id, status) {
     const issue = issues.find((entry) => entry.id === id);
     if (!issue) {
       throw new HttpError(404, 'NOT_FOUND', 'Issue não encontrada');
+    }
+    // Política por papel: admin/qa mudam para qualquer status; developer só move
+    // issues Open para In progress/To review; viewer/convidado não editam.
+    if (!canRoleSetStatus(role, issue.status, status)) {
+      throw new HttpError(403, 'FORBIDDEN', 'Você não pode aplicar este status a esta issue');
     }
     const updated = { ...issue, status };
     await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);

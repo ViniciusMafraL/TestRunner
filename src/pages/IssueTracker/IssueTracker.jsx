@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Status } from 'shared/enums.js';
+import { allowedStatusTargetsForRole } from 'shared/contracts.js';
 import { api } from '../../api/client.js';
 import { UNRECOGNIZED_STATUS_KEY, groupIssuesByStatus } from 'shared/groupByStatus.js';
 import { useOperations } from '../../operations/OperationContext.jsx';
@@ -81,7 +81,7 @@ const LinkIcon = (
 );
 
 export function IssueTracker() {
-  const { canWrite } = useSession();
+  const { canWrite, session } = useSession();
   // A issue aberta vive na URL (/issue-tracker/:issueId), não em estado local,
   // para que o link do modal seja compartilhável e o voltar do navegador o feche.
   const { issueId } = useParams();
@@ -314,10 +314,13 @@ export function IssueTracker() {
 
   function renderCell(issue, field) {
     if (field === 'status') {
-      return canWrite ? (
+      // Opções conforme o papel: admin/qa mudam para qualquer status; developer
+      // só move issues Open para In progress/To review; viewer/convidado → texto.
+      const targets = allowedStatusTargetsForRole(session?.role, issue.status);
+      return targets.length > 0 ? (
         <StatusPillSelect
           value={issue.status}
-          options={Status}
+          options={targets}
           onChange={(status) => handleStatusChange(issue.id, status)}
           ariaLabel={`Status da issue ${issue.id}`}
         />
@@ -523,7 +526,9 @@ export function IssueTracker() {
       <IssueDetailModal
         issue={selectedIssue}
         onClose={closeIssue}
-        onStatusChange={canWrite ? handleStatusChange : undefined}
+        // Status: o modal aplica a política por papel; passar sempre é seguro
+        // (viewer/convidado veem texto). Edição de campos segue só para canWrite.
+        onStatusChange={handleStatusChange}
         onIssueUpdate={canWrite ? handleIssueUpdate : undefined}
       />
 

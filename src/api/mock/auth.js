@@ -24,8 +24,12 @@ export async function login(payload) {
   }
 
   if (payload.type === 'google') {
-    const name = payload.credential.replace(/^mock:/, '').trim() || 'Carlos';
-    const role = 'admin';
+    // `mock:dev:<nome>` entra como desenvolvedor sem operação (exercita a FTUE em
+    // modo mock local); qualquer outro nome entra como admin, como antes.
+    const raw = payload.credential.replace(/^mock:/, '').trim();
+    const isDev = raw.toLowerCase().startsWith('dev:');
+    const name = (isDev ? raw.slice(4).trim() : raw) || 'Carlos';
+    const role = isDev ? 'developer' : 'admin';
     return {
       session: {
         kind: 'google',
@@ -33,6 +37,7 @@ export async function login(payload) {
         email: `${name.toLowerCase()}@sportia.mock`,
         role,
         canWrite: roleCanWrite(role),
+        operations: isDev ? '' : '*',
         token: 'mock-session-token',
         // Época vigente no login — um force update posterior invalida a sessão.
         epoch: readMockEpoch(),

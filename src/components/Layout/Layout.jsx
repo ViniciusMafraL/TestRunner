@@ -3,6 +3,7 @@ import { OperationProvider } from '../../operations/OperationContext.jsx';
 import { SideMenu } from '../SideMenu/SideMenu.jsx';
 import { ErrorBoundary } from '../ErrorBoundary/ErrorBoundary.jsx';
 import { OutdatedSessionGate } from '../OutdatedSessionGate/OutdatedSessionGate.jsx';
+import { FtueOperationGate } from '../FtueOperationGate/FtueOperationGate.jsx';
 
 export function Layout() {
   return (
@@ -17,6 +18,7 @@ export function Layout() {
       </div>
       {/* Fora do shell para cobrir a tela inteira, sidebar inclusive. */}
       <OutdatedSessionGate />
+      <FtueOperationGate />
     </OperationProvider>
   );
 }

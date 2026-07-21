@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { google } from 'googleapis';
-import { validateLoginPayload, roleCanWrite } from 'shared/contracts.js';
+import { validateLoginPayload } from 'shared/contracts.js';
 import { config } from '../config.js';
 import { HttpError } from '../HttpError.js';
 import { signSession } from '../sessionToken.js';
+import { buildGoogleSession } from '../session.js';
 import { getEpoch } from '../systemState.js';
 import { upsertUserOnLogin } from '../repositories/usersRepository.js';
 import { asyncHandler } from '../asyncHandler.js';
@@ -46,18 +47,9 @@ authRouter.post(
       }
       const info = await verifyGoogleCredential(payload.credential);
       const user = await upsertUserOnLogin(info.email, info.name ?? info.email);
-      const session = {
-        kind: 'google',
-        displayName: user.name,
-        email: user.email,
-        role: user.role,
-        canWrite: roleCanWrite(user.role),
-        operations: user.operations,
-        // Época vigente no momento do login: um force update posterior invalida
-        // esta sessão (ver requireSession / POST /system/bump).
-        epoch: getEpoch(),
-      };
-      res.json({ session: { ...session, token: signSession(session) } });
+      // Época vigente no momento do login: um force update posterior invalida
+      // esta sessão (ver requireSession / POST /system/bump).
+      res.json({ session: buildGoogleSession(user, getEpoch()) });
       return;
     }
 

@@ -59,6 +59,16 @@ export function getOperations() {
   return request({ method: 'GET', url: '/operations' });
 }
 
+// Catálogo completo de operações (sem filtro de acesso) para a FTUE do dev.
+export function getOperationsCatalog() {
+  return request({ method: 'GET', url: '/operations/catalog' });
+}
+
+// Conclui a FTUE: anexa a operação ao usuário e devolve a sessão reemitida.
+export function setMyOperation(operationId) {
+  return request({ method: 'POST', url: '/users/me/operation', data: { operationId } });
+}
+
 export function getProjects(op) {
   return request({ method: 'GET', url: `/operations/${encodeURIComponent(op)}/projects` });
 }

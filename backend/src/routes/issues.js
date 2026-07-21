@@ -34,11 +34,14 @@ issuesRouter.post(
   }),
 );
 
+// Sem requireWrite: quem pode aplicar cada transição é decidido pela política de
+// papel dentro de updateIssueStatus (admin/qa tudo; developer só Open→In
+// progress/To review; viewer/convidado → 403). Assim o developer edita status
+// sem ganhar escrita nas demais rotas.
 issuesRouter.patch(
   '/:id/status',
-  requireWrite,
   asyncHandler(async (req, res) => {
-    const issue = await updateIssueStatus(req.operation, req.project, req.params.id, req.body?.status);
+    const issue = await updateIssueStatus(req.operation, req.project, req.params.id, req.body?.status, req.session?.role);
     res.json(issue);
   }),
 );

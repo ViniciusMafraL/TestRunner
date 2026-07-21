@@ -15,7 +15,7 @@ function mockClipboard() {
 
 describe('IssueTracker - seleção em lote (componente)', () => {
   it('checkboxes das linhas ficam ocultos até habilitar no header', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Crash ao abrir o Hub em dispositivos Android');
@@ -26,7 +26,7 @@ describe('IssueTracker - seleção em lote (componente)', () => {
   });
 
   it('header liga o modo, seleciona o grupo e mostra a barra flutuante', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Crash ao abrir o Hub em dispositivos Android');
@@ -44,7 +44,7 @@ describe('IssueTracker - seleção em lote (componente)', () => {
   });
 
   it('Copiar links envia os deep links das selecionadas para a área de transferência', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     const writeText = mockClipboard();
     renderWithProviders(<IssueTracker />);
 
@@ -63,7 +63,7 @@ describe('IssueTracker - seleção em lote (componente)', () => {
   });
 
   it('Arquivar muda o status para "Arquivado" e as issues caem em Não reconhecido', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Crash ao abrir o Hub em dispositivos Android');
@@ -76,7 +76,7 @@ describe('IssueTracker - seleção em lote (componente)', () => {
   });
 
   it('falha parcial mantém a issue que falhou selecionada e reporta na barra (BUG-002 simula 409)', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Placar não atualiza em tempo real');
@@ -106,7 +106,7 @@ describe('IssueTracker - seleção em lote (componente)', () => {
   });
 
   it('Cancelar sai do modo de seleção e esconde os checkboxes de novo', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Crash ao abrir o Hub em dispositivos Android');

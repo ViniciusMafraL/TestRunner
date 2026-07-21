@@ -23,6 +23,8 @@ export const api = {
   createIssue: impl.createIssue,
   getUsers: impl.getUsers,
   getOperations: impl.getOperations,
+  getOperationsCatalog: impl.getOperationsCatalog,
+  setMyOperation: impl.setMyOperation,
   getProjects: impl.getProjects,
   addProject: impl.addProject,
   getTestRuns: impl.getTestRuns,

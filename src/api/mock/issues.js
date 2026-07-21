@@ -1,6 +1,7 @@
-import { validateEvidenceFiles, validateIssuePayload, validateIssueUpdatePayload } from 'shared/contracts.js';
+import { canRoleSetStatus, validateEvidenceFiles, validateIssuePayload, validateIssueUpdatePayload } from 'shared/contracts.js';
 import { groupIssuesByStatus } from 'shared/groupByStatus.js';
 import { ApiError } from '../ApiError.js';
+import { readStoredSession } from '../../auth/sessionStorage.js';
 import {
   addIssue,
   attachEvidenceLinkInStore,
@@ -30,6 +31,15 @@ export async function getIssuesGroupedByStatus() {
 
 export async function updateIssueStatus(id, status) {
   await delay(120);
+  // Paridade com o backend: o papel vem da sessão (aqui, do storage; no real, do
+  // JWT). Sem sessão (testes de contrato de baixo nível), não impõe política.
+  const role = readStoredSession()?.role;
+  if (role) {
+    const current = listIssues().find((issue) => issue.id === id);
+    if (current && !canRoleSetStatus(role, current.status, status)) {
+      throw new ApiError(403, 'FORBIDDEN', 'Você não pode aplicar este status a esta issue');
+    }
+  }
   try {
     const issue = updateIssueStatusInStore(id, status);
     if (!issue) {

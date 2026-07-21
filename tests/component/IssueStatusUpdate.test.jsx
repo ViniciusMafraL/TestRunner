@@ -6,7 +6,7 @@ import { renderWithProviders, seedSession } from '../testUtils.jsx';
 
 describe('IssueTracker - atualização otimista (componente)', () => {
   it('reflete a mudança de status imediatamente', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Crash ao abrir o Hub em dispositivos Android');
@@ -23,7 +23,7 @@ describe('IssueTracker - atualização otimista (componente)', () => {
   });
 
   it('reverte o status ao estado anterior quando a gravação falha (BUG-002 simula 409)', async () => {
-    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    seedSession({ kind: 'fixed', displayName: 'Carlos', role: 'admin', canWrite: true });
     renderWithProviders(<IssueTracker />);
 
     await screen.findByText('Placar não atualiza em tempo real');
