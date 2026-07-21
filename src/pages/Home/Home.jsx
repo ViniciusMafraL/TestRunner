@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../api/client.js';
 import { useOperations } from '../../operations/OperationContext.jsx';
+import { boardUrlForOperation } from '../../operations/operationBoards.js';
 import { IssueDetailModal } from '../../components/IssueDetailModal/IssueDetailModal.jsx';
 import { Loading } from '../../components/Loading/Loading.jsx';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
@@ -8,6 +9,32 @@ import { StatusPill } from '../../components/StatusPill/StatusPill.jsx';
 import { AvatarGroup } from '../../components/Avatar/Avatar.jsx';
 
 const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
+
+const BoardIcon = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M3 9h18M9 21V9" />
+  </svg>
+);
+
+const ExternalLinkIcon = (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M14 4h6v6M20 4l-9 9" />
+    <path d="M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" />
+  </svg>
+);
+
+function OperationBoardButton({ operationId }) {
+  const url = boardUrlForOperation(operationId);
+  if (!url) return null;
+  return (
+    <a className="chip-button" href={url} target="_blank" rel="noreferrer">
+      {BoardIcon}
+      Quadro da operação
+      {ExternalLinkIcon}
+    </a>
+  );
+}
 
 const COLUMN_WIDTHS = {
   status: 120,
@@ -46,7 +73,7 @@ export function Home() {
   if (loading || !summary) {
     return (
       <div>
-        <PageHeader breadcrumb="" title="Home" />
+        <PageHeader breadcrumb="" title="Home" right={<OperationBoardButton operationId={currentOperation} />} />
         <Loading variant="block" />
       </div>
     );
@@ -62,20 +89,23 @@ export function Home() {
         breadcrumb=""
         title="Home"
         right={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
-            <span style={{ font: 'var(--font-label)' }}>Concluído</span>
-            <div
-              style={{
-                width: 120,
-                height: 8,
-                borderRadius: 'var(--radius-pill)',
-                background: 'var(--color-border-200)',
-                overflow: 'hidden',
-              }}
-            >
-              <div style={{ width: `${completionRate}%`, height: '100%', background: 'var(--color-lime)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+            <OperationBoardButton operationId={currentOperation} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
+              <span style={{ font: 'var(--font-label)' }}>Concluído</span>
+              <div
+                style={{
+                  width: 120,
+                  height: 8,
+                  borderRadius: 'var(--radius-pill)',
+                  background: 'var(--color-border-200)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ width: `${completionRate}%`, height: '100%', background: 'var(--color-lime)' }} />
+              </div>
+              <span className="count-pill">{completionRate}%</span>
             </div>
-            <span className="count-pill">{completionRate}%</span>
           </div>
         }
       />

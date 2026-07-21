@@ -46,6 +46,20 @@ describe('Home (componente)', () => {
     expect(document.querySelector('.page-header-stat')).not.toBeInTheDocument();
   });
 
+  it('mostra o botão "Quadro da operação" apontando para a planilha da operação atual (Sportia), em nova aba', async () => {
+    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    renderWithProviders(<Home />);
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+
+    const board = screen.getByRole('link', { name: 'Quadro da operação' });
+    expect(board).toHaveAttribute(
+      'href',
+      'https://docs.google.com/spreadsheets/d/1WeBparMLMvHd6Wqyyhe4LCltZR9L7k3n31PJs53c_Ps/edit?gid=363802640#gid=363802640',
+    );
+    expect(board).toHaveAttribute('target', '_blank');
+    expect(board).toHaveAttribute('rel', expect.stringContaining('noreferrer'));
+  });
+
   it('abre o modal de detalhes ao clicar em uma linha', async () => {
     seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
     renderWithProviders(<Home />);

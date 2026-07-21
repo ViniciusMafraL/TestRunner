@@ -1,11 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Reporter } from '../../src/pages/Reporter/Reporter.jsx';
 import { renderWithProviders, seedSession } from '../testUtils.jsx';
 
 function makeFile(name, type = 'video/mp4') {
   return new File(['conteudo-de-teste'], name, { type });
+}
+
+// jsdom implementa DataTransfer, mas o testing-library reconstrói o objeto e a
+// propriedade nativa `files` (getter) não aceita o array — ficaria vazia. Então
+// injetamos um dataTransfer/clipboardData simples direto no evento, que é como
+// o handler (React onDrop / listener nativo de paste) o lê.
+function transferOf(files) {
+  return {
+    files,
+    items: files.map((file) => ({ kind: 'file', type: file.type, getAsFile: () => file })),
+    types: ['Files'],
+  };
+}
+
+function dropFiles(node, files) {
+  const event = new Event('drop', { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'dataTransfer', { value: transferOf(files) });
+  fireEvent(node, event);
+}
+
+function pasteFiles(node, files) {
+  const event = new Event('paste', { bubbles: true, cancelable: true });
+  Object.defineProperty(event, 'clipboardData', { value: transferOf(files) });
+  fireEvent(node, event);
 }
 
 async function fillRequiredFields() {
@@ -27,6 +51,51 @@ describe('Reporter - evidências (componente)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remover bug.mp4' }));
     expect(screen.queryByText('bug.mp4')).not.toBeInTheDocument();
     expect(screen.getByText('print.png')).toBeInTheDocument();
+  });
+
+  it('arrastar-e-soltar um arquivo no dropzone anexa a evidência', async () => {
+    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    renderWithProviders(<Reporter />);
+
+    const dropzone = await screen.findByRole('button', { name: /anexar/i });
+    dropFiles(dropzone, [makeFile('arrastado.mp4')]);
+
+    expect(await screen.findByText('arrastado.mp4')).toBeInTheDocument();
+  });
+
+  it('tipo inválido no drop mostra o alerta e não anexa', async () => {
+    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    renderWithProviders(<Reporter />);
+
+    const dropzone = await screen.findByRole('button', { name: /anexar/i });
+    // Vídeo acima do limite de tamanho exercita o alerta de validação.
+    const huge = new File(['x'], 'grande.mp4', { type: 'video/mp4' });
+    Object.defineProperty(huge, 'size', { value: 999 * 1024 * 1024 });
+    dropFiles(dropzone, [huge]);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/excede o limite/i);
+    expect(screen.queryByText('grande.mp4')).not.toBeInTheDocument();
+  });
+
+  it('colar (Ctrl+V) um print da área de transferência anexa a evidência', async () => {
+    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    renderWithProviders(<Reporter />);
+
+    await screen.findByRole('button', { name: /anexar/i });
+    pasteFiles(document, [makeFile('print.png', 'image/png')]);
+
+    expect(await screen.findByText('print.png')).toBeInTheDocument();
+  });
+
+  it('colar texto (sem arquivo) não intercepta nem anexa nada', async () => {
+    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    renderWithProviders(<Reporter />);
+
+    await screen.findByRole('button', { name: /anexar/i });
+    pasteFiles(document, []);
+
+    // Nenhuma evidência anexada => nenhum botão "Remover ..." na lista.
+    expect(screen.queryByRole('button', { name: /^Remover/ })).not.toBeInTheDocument();
   });
 
   it('bloqueia tipo de arquivo não aceito na seleção, antes do envio', async () => {

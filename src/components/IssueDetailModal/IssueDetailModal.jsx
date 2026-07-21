@@ -40,6 +40,30 @@ function PlainValue({ value }) {
   return text ? text : <span className="field-value--empty">—</span>;
 }
 
+/** 'YYYY-MM-DD' → 'DD/MM/YYYY' (formato do LOG). Datas fora do padrão passam intactas. */
+function formatLogDate(value) {
+  const text = String(value ?? '');
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : text;
+}
+
+/**
+ * Histórico da issue. Hoje só temos a data de criação (`createdIn`), então a
+ * única entrada é "Report criado". Quando o backend passar a gravar mudanças de
+ * status (ator + de→para + timestamp), novas linhas entram acima da criação.
+ */
+function IssueLog({ issue }) {
+  return (
+    <ul className="issue-log">
+      <li className="issue-log-entry">
+        <span className="issue-log-dot" aria-hidden="true" />
+        <span className="issue-log-text">Report criado</span>
+        {issue.createdIn ? <span className="issue-log-date">{formatLogDate(issue.createdIn)}</span> : null}
+      </li>
+    </ul>
+  );
+}
+
 function buildForm(issue) {
   const form = {};
   for (const field of ISSUE_EDITABLE_FIELDS) {
@@ -102,6 +126,106 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
     }
   }
 
+  if (!editing) {
+    // Opções de status conforme o papel (mesma política do Issue Tracker):
+    // dev só move Open→In progress/To review; viewer/convidado veem texto.
+    const targets = allowedStatusTargetsForRole(session?.role, issue.status);
+    return (
+      <div
+        className="modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Detalhes da issue ${issue.id}`}
+        onClick={onClose}
+      >
+        <div className="form-panel issue-detail-panel issue-detail-panel--wide" onClick={(event) => event.stopPropagation()}>
+          <div className="issue-detail-grid">
+            <div className="issue-detail-main">
+              <div className="issue-detail-pills">
+                {targets.length > 0 && onStatusChange ? (
+                  <StatusPillSelect
+                    value={issue.status}
+                    options={targets}
+                    onChange={(status) => onStatusChange(issue.id, status)}
+                    ariaLabel="Status"
+                  />
+                ) : (
+                  <StatusPill status={issue.status} />
+                )}
+                {issue.severity ? (
+                  <span className={`severity-chip severity-chip--${SEVERITY_SLUG[issue.severity] ?? 'muted'}`}>{issue.severity}</span>
+                ) : null}
+                {issue.tag ? <span className="tag-chip">{issue.tag}</span> : null}
+              </div>
+
+              <h2 className="issue-detail-title">{issue.title}</h2>
+
+              {issue.keywords ? <KeywordChips value={issue.keywords} /> : null}
+
+              {/* Descrição + evidências rolam juntas quando a descrição é longa. */}
+              <div className="issue-detail-scroll">
+                {issue.description ? <p className="issue-detail-description">{issue.description}</p> : null}
+                <EvidenceGallery issue={issue} />
+              </div>
+
+              {canEdit ? (
+                <div className="issue-detail-actions">
+                  <button type="button" className="chip-button" onClick={startEditing}>
+                    Editar
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="issue-detail-meta">
+              <div className="issue-detail-meta-top">
+                <span className="issue-detail-id">{issue.id}</span>
+                <button type="button" className="issue-detail-close" onClick={onClose} aria-label="Fechar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                    <path d="M6 6l12 12M18 6 6 18" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="fields-label">Campos</div>
+              <FieldRow label="Found By">
+                {issue.foundBy ? <AvatarGroup names={issue.foundBy} /> : <span className="field-value--empty">—</span>}
+              </FieldRow>
+              <FieldRow label="Version">
+                {issue.version ? <span className="cell-mono">{issue.version}</span> : <span className="field-value--empty">—</span>}
+              </FieldRow>
+              <FieldRow label="Platform">
+                <PlainValue value={issue.platform} />
+              </FieldRow>
+              <FieldRow label="Store">
+                <PlainValue value={issue.store} />
+              </FieldRow>
+              <FieldRow label="Created In">
+                <PlainValue value={issue.createdIn} />
+              </FieldRow>
+              <FieldRow label="Attachment">
+                {attachment ? (
+                  attachment.startsWith('http') ? (
+                    <a className="attachment-link" href={attachment} target="_blank" rel="noreferrer">
+                      <span className="table-cell-ellipsis">{attachment}</span>
+                    </a>
+                  ) : (
+                    attachment
+                  )
+                ) : (
+                  <span className="field-value--empty">—</span>
+                )}
+              </FieldRow>
+
+              <div className="fields-label">Log</div>
+              <IssueLog issue={issue} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="modal-overlay"
@@ -114,11 +238,6 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
         <div className="issue-detail-header">
           <span className="issue-detail-id">{issue.id}</span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-            {canEdit && !editing ? (
-              <button type="button" className="chip-button" onClick={startEditing}>
-                Editar
-              </button>
-            ) : null}
             <button type="button" className="issue-detail-close" onClick={onClose} aria-label="Fechar">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
                 <path d="M6 6l12 12M18 6 6 18" />
@@ -128,72 +247,36 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
         </div>
 
         <div className="form-panel-body">
-          {editing ? (
-            <>
-              <div>
-                <input
-                  className="form-title-input"
-                  type="text"
-                  aria-label="Title"
-                  placeholder="Título da issue"
-                  value={form.title}
-                  onChange={(event) => updateField('title', event.target.value)}
-                />
-                {fieldErrors.title ? (
-                  <div role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)', marginTop: 'var(--space-1)' }}>
-                    {fieldErrors.title}
-                  </div>
-                ) : null}
+          <div>
+            <input
+              className="form-title-input"
+              type="text"
+              aria-label="Title"
+              placeholder="Título da issue"
+              value={form.title}
+              onChange={(event) => updateField('title', event.target.value)}
+            />
+            {fieldErrors.title ? (
+              <div role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)', marginTop: 'var(--space-1)' }}>
+                {fieldErrors.title}
               </div>
-              <div className="issue-detail-pills">
-                <StatusPill status={issue.status} />
-              </div>
-              <textarea
-                className="form-desc-input"
-                aria-label="Description"
-                placeholder="Adicione uma descrição — passos para reproduzir, comportamento esperado…"
-                value={form.description}
-                onChange={(event) => updateField('description', event.target.value)}
-              />
-            </>
-          ) : (
-            <>
-              <h2 className="issue-detail-title">{issue.title}</h2>
-
-              <div className="issue-detail-pills">
-                {(() => {
-                  // Opções conforme o papel (mesma política do Issue Tracker):
-                  // dev só move Open→In progress/To review; viewer/convidado texto.
-                  const targets = allowedStatusTargetsForRole(session?.role, issue.status);
-                  return targets.length > 0 && onStatusChange ? (
-                    <StatusPillSelect
-                      value={issue.status}
-                      options={targets}
-                      onChange={(status) => onStatusChange(issue.id, status)}
-                      ariaLabel="Status"
-                    />
-                  ) : (
-                    <StatusPill status={issue.status} />
-                  );
-                })()}
-                {issue.severity ? (
-                  <span className={`severity-chip severity-chip--${SEVERITY_SLUG[issue.severity] ?? 'muted'}`}>{issue.severity}</span>
-                ) : null}
-                {issue.tag ? <span className="tag-chip">{issue.tag}</span> : null}
-              </div>
-
-              {issue.description ? <p className="issue-detail-description">{issue.description}</p> : null}
-
-              <EvidenceGallery issue={issue} />
-            </>
-          )}
+            ) : null}
+          </div>
+          <div className="issue-detail-pills">
+            <StatusPill status={issue.status} />
+          </div>
+          <textarea
+            className="form-desc-input"
+            aria-label="Description"
+            placeholder="Adicione uma descrição — passos para reproduzir, comportamento esperado…"
+            value={form.description}
+            onChange={(event) => updateField('description', event.target.value)}
+          />
         </div>
 
         <div className="fields-label">Fields</div>
 
-        {editing ? (
-          <>
-            <div className="field-row">
+        <div className="field-row">
               <label className="field-label" htmlFor="edit-version">
                 {FIELD_ICONS.version}
                 Version *
@@ -294,42 +377,6 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
                 {saving ? 'Salvando…' : 'Salvar'}
               </button>
             </div>
-          </>
-        ) : (
-          <>
-            <FieldRow icon={FIELD_ICONS.foundBy} label="Found By">
-              {issue.foundBy ? <AvatarGroup names={issue.foundBy} /> : <span className="field-value--empty">—</span>}
-            </FieldRow>
-            <FieldRow icon={FIELD_ICONS.version} label="Version">
-              {issue.version ? <span className="cell-mono">{issue.version}</span> : <span className="field-value--empty">—</span>}
-            </FieldRow>
-            <FieldRow icon={FIELD_ICONS.platform} label="Platform">
-              <PlainValue value={issue.platform} />
-            </FieldRow>
-            <FieldRow icon={FIELD_ICONS.keywords} label="Keywords">
-              {issue.keywords ? <KeywordChips value={issue.keywords} /> : <span className="field-value--empty">—</span>}
-            </FieldRow>
-            <FieldRow icon={FIELD_ICONS.store} label="Store">
-              <PlainValue value={issue.store} />
-            </FieldRow>
-            <FieldRow icon={FIELD_ICONS.createdIn} label="Created In">
-              <PlainValue value={issue.createdIn} />
-            </FieldRow>
-            <FieldRow icon={FIELD_ICONS.attachment} label="Attachment">
-              {attachment ? (
-                attachment.startsWith('http') ? (
-                  <a className="attachment-link" href={attachment} target="_blank" rel="noreferrer">
-                    <span className="table-cell-ellipsis">{attachment}</span>
-                  </a>
-                ) : (
-                  attachment
-                )
-              ) : (
-                <span className="field-value--empty">—</span>
-              )}
-            </FieldRow>
-          </>
-        )}
       </div>
     </div>
   );

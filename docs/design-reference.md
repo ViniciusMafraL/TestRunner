@@ -153,7 +153,8 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 - Rota: `/home` · Arquivo: `src/pages/Home/Home.jsx`
 
 ### `Home — Cabeçalho`
-- `PageHeader` plano com barra de progresso de conclusão no slot `right` (rótulo + barra lime + `count-pill` com %).
+- `PageHeader` plano; no slot `right`, o botão **"Quadro da operação"** (`.chip-button` como `<a target="_blank">`, ícone de quadro + link externo) seguido da barra de progresso de conclusão (rótulo + barra lime + `count-pill` com %).
+- **Quadro da operação**: abre a planilha de report da operação atual no Google Sheets. O link por operação vem de `src/operations/operationBoards.js` (`boardUrlForOperation(id)`, mapa fixo por id em minúsculo: sportia/devops/fortnite/roblox). Operação sem link cadastrado não mostra o botão. Cada operação já guarda seu `spreadsheetId` na aba Operations do controle, então esse mapa pode migrar para `getOperations` no futuro (coluna "BoardUrl").
 
 ### `Home — Contadores`
 - Três `.card` lado a lado (Abertas/Concluídas/Fechadas) com número em `--font-display`.
@@ -196,7 +197,12 @@ Cada status individual tem um par tint/dot (`--status-<slug>-bg` / `--status-<sl
 
 ### `IssueDetailModal`
 - Arquivo: `src/components/IssueDetailModal/IssueDetailModal.jsx`
-- O que é (redesenhado): `.modal-overlay` + painel `.form-panel.issue-detail-panel` (640px, corpo rolável). Cabeçalho com **chip de ID** mono + botão fechar (X SVG). Corpo: título grande, linha de pílulas de resumo (StatusPill/StatusPillSelect + severity-chip + tag-chip), descrição em texto corrido. Depois, seção **"Fields"** em linhas `field-row` com ícone + rótulo + valor (Found By com avatar, Version mono, Platform, Keywords chip, Store, Created In, Attachment como link). Valores vazios aparecem como "—" cinza.
+- **Modo leitura (redesenhado — 2 colunas):** `.modal-overlay` + painel `.form-panel.issue-detail-panel.issue-detail-panel--wide` (1040px, cantos `--radius-control`, `max-height: 88vh`, sem cabeçalho próprio — o X mora na coluna direita). Grid `.issue-detail-grid` (`1fr / 360px`):
+  - **Coluna principal** (`.issue-detail-main`): linha de pílulas no topo (StatusPill/StatusPillSelect + `severity-chip` + `tag-chip` — o tag é mantido por ser a localização do bug na Sportia) → título grande (`.issue-detail-title`) → **Keywords como chips** logo abaixo do título (`KeywordChips`) → **área rolável** `.issue-detail-scroll` com descrição + `EvidenceGallery` ("Evidências"), que rola sozinha quando a descrição é longa → botão **Editar** (`.issue-detail-actions`) fixo abaixo, sempre visível.
+  - **Coluna direita** (`.issue-detail-meta`, divisória à esquerda, rola sozinha): topo `.issue-detail-meta-top` com **chip de ID** mono à esquerda e **Fechar** (X SVG) à direita → rótulo **"Campos"** + linhas `field-row` **sem ícone** (Found By com avatar, Version mono, Platform, Store, Created In, Attachment como link — Keywords saiu daqui, agora vive abaixo do título) → rótulo **"Log"** + `IssueLog`.
+  - **`IssueLog`** (`.issue-log`): histórico da issue. Hoje só a entrada **"Report criado"** com a data de `createdIn` (formatada DD/MM/YYYY). O modelo não guarda mudanças de status; as linhas "Fulano mudou o status de X para Y" são **feature futura de backend** (ator + de→para + timestamp) e o layout já as acomoda.
+  - Valores vazios aparecem como "—" cinza. Em telas ≤720px as colunas empilham (media query) e a divisória vira separador horizontal.
+- **Modo edição (inalterado):** painel único de 640px (`.issue-detail-panel`), cabeçalho com chip de ID + Fechar, formulário empilhado (título/descrição livres + "Fields" com ícones, rodapé Cancelar/Salvar).
 - Usado em: Home e Issue Tracker.
 
 ### `FloatingActionButton`

@@ -359,8 +359,10 @@ export function IssueTracker() {
       return <AvatarGroup names={issue.foundBy} />;
     }
     if (field === 'title') {
+      // Título quebra em até 2 linhas na própria linha do report; o que passar
+      // vira reticências (line-clamp). Assim dá para ler sem abrir a issue.
       return (
-        <span onClick={() => openIssue(issue)} style={{ cursor: 'pointer' }}>
+        <span className="cell-clamp-2" onClick={() => openIssue(issue)} style={{ cursor: 'pointer' }} title={issue.title}>
           {issue.title}
         </span>
       );
@@ -507,7 +509,7 @@ export function IssueTracker() {
                               ) : null}
                             </td>
                             {visibleColumns.map((field) => (
-                              <td key={field} className="table-cell-ellipsis">
+                              <td key={field} className={field === 'title' ? 'table-cell-title' : 'table-cell-ellipsis'}>
                                 {renderCell(issue, field)}
                               </td>
                             ))}
