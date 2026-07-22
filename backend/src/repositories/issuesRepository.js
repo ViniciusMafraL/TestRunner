@@ -2,6 +2,7 @@ import { StatusGroup } from 'shared/enums.js';
 import { findLatestVersion } from 'shared/version.js';
 import { validateIssuePayload, validateIssueUpdatePayload, canRoleSetStatus } from 'shared/contracts.js';
 import { groupIssuesByStatus } from 'shared/groupByStatus.js';
+import { appendReopenNote, appendStatusLogEntry, retestLogNote, statusAssignsResponsible } from 'shared/issueLog.js';
 import { readRange, appendRow, updateRow } from '../googleSheets.js';
 import { withLock } from '../keyedMutex.js';
 import { HttpError } from '../HttpError.js';
@@ -32,8 +33,9 @@ const COLUMNS = [
   'createdIn',
   'responsible',
   'project',
+  'log',
 ];
-const LAST_COLUMN = 'O';
+const LAST_COLUMN = 'P';
 
 // Cabeçalho legível da aba (linha 1) — usado ao criar uma aba-projeto nova.
 export const ISSUE_SHEET_HEADER = [
@@ -52,6 +54,7 @@ export const ISSUE_SHEET_HEADER = [
   'Created In',
   'Responsible',
   'Project',
+  'Log',
 ];
 
 function rowToIssue(rowNumber, values, projectName) {
@@ -139,7 +142,12 @@ export async function createIssue(operation, project, payload) {
   });
 }
 
-export async function updateIssueStatus(operation, project, id, status, role) {
+/**
+ * Muda o status da issue. `retest` ({ version, comment }) vem do fluxo de
+ * reteste do QA e só é honrado ao reprovar (status "Reopen"): status, descrição
+ * e log saem numa única gravação, dentro do mesmo lock — sem estado parcial.
+ */
+export async function updateIssueStatus(operation, project, id, status, actor = {}, retest = null) {
   // Serializado por aba: mantém o achar-linha → gravar atômico, sem corrida de
   // rowNumber com outra escrita concorrente na mesma aba.
   return withLock(writeKey(operation, project), async () => {
@@ -150,10 +158,23 @@ export async function updateIssueStatus(operation, project, id, status, role) {
     }
     // Política por papel: admin/qa mudam para qualquer status; developer só move
     // issues Open para In progress/To review; viewer/convidado não editam.
-    if (!canRoleSetStatus(role, issue.status, status)) {
+    if (!canRoleSetStatus(actor.role, issue.status, status)) {
       throw new HttpError(403, 'FORBIDDEN', 'Você não pode aplicar este status a esta issue');
     }
     const updated = { ...issue, status };
+    // Ao mover para In progress/To review, quem fez a mudança vira o responsável
+    // (sobrescreve). Toda mudança de status vira uma linha no log da issue.
+    if (statusAssignsResponsible(status) && actor.name) {
+      updated.responsible = actor.name;
+    }
+    updated.log = appendStatusLogEntry(issue.log, {
+      actor: actor.name,
+      status,
+      note: retestLogNote(issue.status, status, retest),
+    });
+    if (status === 'Reopen' && retest) {
+      updated.description = appendReopenNote(issue.description, { actor: actor.name, ...retest });
+    }
     await updateRow(project.gid, issue.rowNumber, issueToRow(updated), operation.spreadsheetId);
     return withoutRowNumber(updated);
   });

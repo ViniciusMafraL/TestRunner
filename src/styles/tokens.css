@@ -27,6 +27,8 @@
   --status-review-bg: #fce7f3;
   --status-progress-dot: #3b82f6;
   --status-progress-bg: #dbeafe;
+  --status-nextbuild-dot: #c11c84;
+  --status-nextbuild-bg: #fbe3f1;
   --status-bydesign-dot: #14b8a6;
   --status-bydesign-bg: #ccfbf1;
   --status-validated-dot: #22c55e;
@@ -142,6 +144,7 @@
   --status-reopen-bg: rgba(245, 158, 11, 0.24);
   --status-review-bg: rgba(236, 72, 153, 0.24);
   --status-progress-bg: rgba(59, 130, 246, 0.24);
+  --status-nextbuild-bg: rgba(193, 28, 132, 0.26);
   --status-bydesign-bg: rgba(20, 184, 166, 0.24);
   --status-validated-bg: rgba(34, 197, 94, 0.22);
   --status-closed-bg: rgba(148, 163, 184, 0.18);
@@ -661,6 +664,11 @@ tr:last-child td {
   background: var(--status-progress-bg);
 }
 
+.status-pill--nextbuild {
+  --status-dot-color: var(--status-nextbuild-dot);
+  background: var(--status-nextbuild-bg);
+}
+
 .status-pill--bydesign {
   --status-dot-color: var(--status-bydesign-dot);
   background: var(--status-bydesign-bg);
@@ -717,6 +725,10 @@ tr:last-child td {
 
 .status-dot--progress {
   --status-dot-color: var(--status-progress-dot);
+}
+
+.status-dot--nextbuild {
+  --status-dot-color: var(--status-nextbuild-dot);
 }
 
 .status-dot--bydesign {
@@ -1175,8 +1187,21 @@ tr:last-child td {
 .issue-detail-actions {
   display: flex;
   justify-content: flex-start;
+  gap: var(--space-2);
   padding-top: var(--space-3);
   border-top: 1px solid var(--color-border-200);
+}
+
+/* Formulário do "Reprovar" (reteste): ocupa o lugar da linha de ações. */
+.issue-retest-form {
+  display: flex;
+  flex-direction: column;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-200);
+}
+
+.issue-retest-form .form-desc-input {
+  min-height: 72px;
 }
 
 /* Coluna direita (meta): campos + log, separada por uma divisória; rola sozinha. */
@@ -1544,6 +1569,19 @@ tr:last-child td {
   border-radius: var(--radius-control);
   background: var(--color-surface);
   display: block;
+}
+
+.evidence-gallery-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Evidências do reteste (pasta RO-): faixa na cor de "Reopen" para separá-las
+   das originais sem repetir a explicação em texto. */
+.evidence-gallery-section--reopen {
+  border-left: 3px solid var(--status-reopen-dot);
+  padding-left: var(--space-3);
 }
 
 /* Barra flutuante de ações em lote (seleção de issues no Issue Tracker). */

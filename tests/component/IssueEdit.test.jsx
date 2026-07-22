@@ -87,6 +87,29 @@ describe('IssueDetailModal - edição de issue (componente)', () => {
     expect(screen.getByText('Placar não atualiza em tempo real')).toBeInTheDocument();
   });
 
+  /* O Reporter promete "anexe depois pelo Editar do Issue Tracker" quando um
+     upload falha — então o modo de edição precisa ter o mesmo seletor de
+     evidências da tela de report. */
+  it('o modo de edição anexa evidências, como a tela de report', async () => {
+    seedSession({ kind: 'fixed', displayName: 'Carlos', canWrite: true });
+    renderTracker();
+
+    const dialog = await openIssueModal('Crash ao abrir o Hub em dispositivos Android');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Editar' }));
+
+    await userEvent.upload(
+      within(dialog).getByLabelText('Arquivos de evidência'),
+      new File(['x'], 'anexo-tardio.mp4', { type: 'video/mp4' }),
+    );
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Salvar' }));
+
+    // Volta ao modo de leitura com a evidência já na galeria.
+    await waitFor(() => {
+      expect(within(dialog).getByRole('button', { name: 'Editar' })).toBeInTheDocument();
+    });
+    expect(await within(dialog).findByTitle('anexo-tardio.mp4')).toBeInTheDocument();
+  });
+
   it('convidado (somente leitura) não vê o botão Editar', async () => {
     seedSession({ kind: 'guest', displayName: 'Visitante', canWrite: false });
     renderTracker();

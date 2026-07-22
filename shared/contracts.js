@@ -156,16 +156,29 @@ export function roleCanAccessSection(role, basePath) {
 }
 
 /**
+ * Transições do developer, por status atual. Ele pega uma issue Open (In
+ * progress/To review) e, quando resolve algo que só sai numa próxima build,
+ * marca "Fixed For Next Build" — a partir de Open, In progress ou To review.
+ * Quando a build sai, ele devolve a issue ao QA (Fixed For Next Build → To
+ * review); quem valida o reteste é sempre o QA. Status atual que não está neste
+ * mapa é somente leitura para o developer.
+ */
+const DEVELOPER_TARGETS = {
+  Open: ['In progress', 'To review', 'Fixed For Next Build'],
+  'In progress': ['Fixed For Next Build'],
+  'To review': ['Fixed For Next Build'],
+  'Fixed For Next Build': ['To review'],
+};
+
+/**
  * Opções de status que o seletor da UI oferece a um papel, a partir do status
- * atual da issue. admin/qa veem o enum completo; developer só vê In progress/To
- * review quando a issue está `Open`; viewer/convidado não editam (lista vazia =
- * pílula somente leitura). Para a imposição no servidor use canRoleSetStatus.
+ * atual da issue. admin/qa veem o enum completo; developer segue
+ * DEVELOPER_TARGETS; viewer/convidado não editam (lista vazia = pílula somente
+ * leitura). Para a imposição no servidor use canRoleSetStatus.
  */
 export function allowedStatusTargetsForRole(role, currentStatus) {
   if (role === 'admin' || role === 'qa') return Status;
-  if (role === 'developer') {
-    return currentStatus === 'Open' ? ['In progress', 'To review'] : [];
-  }
+  if (role === 'developer') return DEVELOPER_TARGETS[currentStatus] ?? [];
   return [];
 }
 

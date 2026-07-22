@@ -1,4 +1,16 @@
-export const Status = ['Open', 'Reopen', 'To review', 'In progress', 'By Design', 'Fixed', 'Closed', "Won't fix"];
+export const Status = [
+  'Open',
+  'Reopen',
+  'To review',
+  'In progress',
+  // Dev resolveu, mas a correção só chega numa próxima build/versão — segue
+  // pendente (grupo "aberta") até sair.
+  'Fixed For Next Build',
+  'By Design',
+  'Fixed',
+  'Closed',
+  "Won't fix",
+];
 
 export const Severity = ['Critical', 'Compliance', 'Major', 'Normal', 'Low', 'Suggestion'];
 
@@ -39,6 +51,7 @@ export const StatusGroup = {
   Reopen: 'aberta',
   'To review': 'aberta',
   'In progress': 'aberta',
+  'Fixed For Next Build': 'aberta',
   'By Design': 'aberta',
   Fixed: 'concluida',
   Closed: 'fechada',

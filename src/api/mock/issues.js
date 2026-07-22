@@ -1,10 +1,12 @@
 import { canRoleSetStatus, validateEvidenceFiles, validateIssuePayload, validateIssueUpdatePayload } from 'shared/contracts.js';
 import { groupIssuesByStatus } from 'shared/groupByStatus.js';
+import { appendReopenNote, appendStatusLogEntry, retestLogNote, statusAssignsResponsible } from 'shared/issueLog.js';
 import { ApiError } from '../ApiError.js';
 import { readStoredSession } from '../../auth/sessionStorage.js';
 import {
   addIssue,
   attachEvidenceLinkInStore,
+  getIssueById,
   listEvidenceFilesInStore,
   listIssues,
   updateIssueInStore,
@@ -29,19 +31,37 @@ export async function getIssuesGroupedByStatus() {
   return { groups: groupIssuesByStatus(listIssues()) };
 }
 
-export async function updateIssueStatus(id, status) {
+export async function updateIssueStatus(id, status, retest = null) {
   await delay(120);
-  // Paridade com o backend: o papel vem da sessão (aqui, do storage; no real, do
-  // JWT). Sem sessão (testes de contrato de baixo nível), não impõe política.
-  const role = readStoredSession()?.role;
+  // Paridade com o backend: papel + ator vêm da sessão (aqui, do storage; no
+  // real, do JWT). Sem sessão (testes de baixo nível), não impõe política nem
+  // grava responsável/log.
+  const session = readStoredSession();
+  const role = session?.role;
+  const actorName = session ? session.displayName || session.email : '';
+  const current = getIssueById(id);
   if (role) {
-    const current = listIssues().find((issue) => issue.id === id);
     if (current && !canRoleSetStatus(role, current.status, status)) {
       throw new ApiError(403, 'FORBIDDEN', 'Você não pode aplicar este status a esta issue');
     }
   }
+  // Ao mover para In progress/To review, quem fez a mudança vira o responsável;
+  // toda mudança de status vira uma linha no log da issue. No reprovar do QA
+  // (status Reopen + retest), o reteste também entra na descrição.
+  const extra = {};
+  if (actorName) {
+    if (statusAssignsResponsible(status)) extra.responsible = actorName;
+    extra.log = appendStatusLogEntry(current?.log, {
+      actor: actorName,
+      status,
+      note: retestLogNote(current?.status, status, retest),
+    });
+  }
+  if (status === 'Reopen' && retest) {
+    extra.description = appendReopenNote(current?.description, { actor: actorName, ...retest });
+  }
   try {
-    const issue = updateIssueStatusInStore(id, status);
+    const issue = updateIssueStatusInStore(id, status, extra);
     if (!issue) {
       throw new ApiError(404, 'NOT_FOUND', 'Issue não encontrada');
     }
@@ -79,7 +99,7 @@ export async function updateIssue(id, patch) {
  * no nome devolve 502 DRIVE_ERROR (mesmo espírito do BUG-002 no status),
  * para validar o aviso de "issue criada, evidências falharam" na UI.
  */
-export async function uploadIssueEvidence(id, file, onProgress) {
+export async function uploadIssueEvidence(id, file, onProgress, kind = 'original') {
   await delay(150);
   const result = validateEvidenceFiles([file]);
   if (!result.valid) {
@@ -89,7 +109,7 @@ export async function uploadIssueEvidence(id, file, onProgress) {
   if (String(file?.name ?? '').toLowerCase().includes('erro')) {
     throw new ApiError(502, 'DRIVE_ERROR', 'Não foi possível enviar a evidência para o Drive');
   }
-  const issue = attachEvidenceLinkInStore(id, file);
+  const issue = attachEvidenceLinkInStore(id, file, kind);
   if (!issue) {
     throw new ApiError(404, 'NOT_FOUND', 'Issue não encontrada');
   }
@@ -99,14 +119,19 @@ export async function uploadIssueEvidence(id, file, onProgress) {
 /** Simula GET /issues/:id/evidence a partir do que o upload registrou no store. */
 export async function getIssueEvidence(id) {
   await delay(150);
-  const files = listEvidenceFilesInStore(id).map((file, index) => ({
-    id: `mock-file-${id}-${index}`,
-    name: file.name,
-    mimeType: file.type,
-    thumbnailUrl: MOCK_THUMBNAIL,
-    previewUrl: 'about:blank',
-    webViewLink: `https://drive.google.com/drive/folders/mock-${id}`,
-  }));
+  const stored = listEvidenceFilesInStore(id);
+  // Como no backend: originais primeiro, evidências de reteste (pasta RO-) no fim.
+  const files = [...stored.filter((file) => file.kind !== 'reopen'), ...stored.filter((file) => file.kind === 'reopen')].map(
+    (file, index) => ({
+      id: `mock-file-${id}-${index}`,
+      name: file.name,
+      mimeType: file.type,
+      kind: file.kind ?? 'original',
+      thumbnailUrl: MOCK_THUMBNAIL,
+      previewUrl: 'about:blank',
+      webViewLink: `https://drive.google.com/drive/folders/mock-${id}`,
+    }),
+  );
   return { files };
 }
 

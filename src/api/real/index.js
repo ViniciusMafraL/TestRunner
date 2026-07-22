@@ -22,8 +22,10 @@ export function getIssuesGroupedByStatus() {
   return request({ method: 'GET', url: '/issues/grouped-by-status' });
 }
 
-export function updateIssueStatus(id, status) {
-  return request({ method: 'PATCH', url: `/issues/${id}/status`, data: { status } });
+// `retest` ({ version, comment }) acompanha o reprovar do QA (status "Reopen"):
+// o servidor deriva dele a nota do log e o bloco acrescentado à descrição.
+export function updateIssueStatus(id, status, retest) {
+  return request({ method: 'PATCH', url: `/issues/${id}/status`, data: retest ? { status, retest } : { status } });
 }
 
 export function updateIssue(id, patch) {
@@ -38,8 +40,11 @@ export function getIssueEvidence(id) {
   return request({ method: 'GET', url: `/issues/${encodeURIComponent(id)}/evidence` });
 }
 
-export function uploadIssueEvidence(id, file, onProgress) {
+export function uploadIssueEvidence(id, file, onProgress, kind = 'original') {
   const formData = new FormData();
+  // `kind` antes do arquivo: campo de texto que o backend lê para escolher entre
+  // a pasta do bug e a subpasta RO- do reteste.
+  if (kind === 'reopen') formData.append('kind', 'reopen');
   formData.append('files', file);
   return request({
     method: 'POST',

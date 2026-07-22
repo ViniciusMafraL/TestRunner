@@ -10,6 +10,7 @@ const ISSUE_STATUS_SLUG = {
   Reopen: 'reopen',
   'To review': 'review',
   'In progress': 'progress',
+  'Fixed For Next Build': 'nextbuild',
   'By Design': 'bydesign',
   Fixed: 'validated',
   Closed: 'closed',

@@ -222,7 +222,7 @@ export function addIssue(payload) {
  * forma determinística para o id "BUG-002", já que testes/e2e precisam de um
  * caso previsível de conflito.
  */
-export function updateIssueStatusInStore(id, status) {
+export function updateIssueStatusInStore(id, status, extra = {}) {
   if (id === 'BUG-002') {
     const error = new Error('WRITE_CONFLICT');
     error.code = 'WRITE_CONFLICT';
@@ -231,7 +231,9 @@ export function updateIssueStatusInStore(id, status) {
   const pj = currentProject();
   const issue = getIssueById(id);
   if (!issue) return null;
-  const updated = { ...issue, status };
+  // `extra` traz responsável/log já calculados pela camada de API (paridade
+  // com o backend, que os grava junto do status).
+  const updated = { ...issue, status, ...extra };
   pj.issues = pj.issues.map((existing) => (existing.id === id ? updated : existing));
   return updated;
 }
@@ -258,14 +260,19 @@ export function updateIssueInStore(id, patch) {
  * Simula o anexo de evidências (POST /issues/:id/evidence): grava no attachment
  * o link fake da "pasta" da issue, como o backend real faz.
  */
-export function attachEvidenceLinkInStore(id, file) {
+export function attachEvidenceLinkInStore(id, file, kind = 'original') {
   const pj = currentProject();
   const issue = getIssueById(id);
   if (!issue) return null;
+  // O attachment aponta para a pasta do bug mesmo no reteste — a pasta RO- vive
+  // dentro dela (paridade com o backend).
   const updated = { ...issue, attachment: `https://drive.google.com/drive/folders/mock-${id}` };
   pj.issues = pj.issues.map((existing) => (existing.id === id ? updated : existing));
   if (file) {
-    pj.evidenceFiles = { ...pj.evidenceFiles, [id]: [...(pj.evidenceFiles[id] ?? []), { name: file.name, type: file.type }] };
+    pj.evidenceFiles = {
+      ...pj.evidenceFiles,
+      [id]: [...(pj.evidenceFiles[id] ?? []), { name: file.name, type: file.type, kind }],
+    };
   }
   return updated;
 }

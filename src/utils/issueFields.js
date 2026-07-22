@@ -13,6 +13,7 @@ export const ISSUE_FIELDS = [
   'keywords',
   'store',
   'createdIn',
+  'responsible',
 ];
 
 export const ISSUE_FIELD_LABELS = {
@@ -30,6 +31,7 @@ export const ISSUE_FIELD_LABELS = {
   keywords: 'Keywords',
   store: 'Store',
   createdIn: 'Created In',
+  responsible: 'Responsible',
 };
 
 /** Colunas padrão do Issue Tracker (FR-034), sem ID. */
@@ -54,4 +56,5 @@ export const ISSUE_TRACKER_COLUMN_ORDER = [
   'description',
   'attachment',
   'createdIn',
+  'responsible',
 ];

@@ -35,10 +35,27 @@ describe('papéis — opções de status do seletor', () => {
     expect(allowedStatusTargetsForRole('qa', 'Fixed')).toEqual(Status);
   });
 
-  it('developer só vê In progress/To review em issues Open', () => {
-    expect(allowedStatusTargetsForRole('developer', 'Open')).toEqual(['In progress', 'To review']);
-    expect(allowedStatusTargetsForRole('developer', 'In progress')).toEqual([]);
+  it('developer em issue Open: In progress, To review e Fixed For Next Build', () => {
+    expect(allowedStatusTargetsForRole('developer', 'Open')).toEqual([
+      'In progress',
+      'To review',
+      'Fixed For Next Build',
+    ]);
+  });
+
+  it('developer em In progress/To review: só Fixed For Next Build', () => {
+    expect(allowedStatusTargetsForRole('developer', 'In progress')).toEqual(['Fixed For Next Build']);
+    expect(allowedStatusTargetsForRole('developer', 'To review')).toEqual(['Fixed For Next Build']);
+  });
+
+  it('developer devolve ao QA quando a build sai: Fixed For Next Build → To review', () => {
+    expect(allowedStatusTargetsForRole('developer', 'Fixed For Next Build')).toEqual(['To review']);
+  });
+
+  it('developer não edita status já resolvidos/fechados', () => {
     expect(allowedStatusTargetsForRole('developer', 'Fixed')).toEqual([]);
+    expect(allowedStatusTargetsForRole('developer', 'Closed')).toEqual([]);
+    expect(allowedStatusTargetsForRole('developer', 'By Design')).toEqual([]);
   });
 
   it('viewer/convidado não têm opções (somente leitura)', () => {
@@ -54,11 +71,25 @@ describe('papéis — imposição de gravação de status', () => {
     expect(canRoleSetStatus('qa', 'In progress', 'Arquivado')).toBe(true);
   });
 
-  it('developer só move Open→In progress/To review', () => {
+  it('developer move Open→In progress/To review/Fixed For Next Build', () => {
     expect(canRoleSetStatus('developer', 'Open', 'In progress')).toBe(true);
     expect(canRoleSetStatus('developer', 'Open', 'To review')).toBe(true);
+    expect(canRoleSetStatus('developer', 'Open', 'Fixed For Next Build')).toBe(true);
     expect(canRoleSetStatus('developer', 'Open', 'Fixed')).toBe(false);
     expect(canRoleSetStatus('developer', 'In progress', 'To review')).toBe(false);
+  });
+
+  it('developer marca Fixed For Next Build a partir de In progress e To review', () => {
+    expect(canRoleSetStatus('developer', 'In progress', 'Fixed For Next Build')).toBe(true);
+    expect(canRoleSetStatus('developer', 'To review', 'Fixed For Next Build')).toBe(true);
+    // Mas não a partir de um status fora do alcance dele.
+    expect(canRoleSetStatus('developer', 'Fixed', 'Fixed For Next Build')).toBe(false);
+  });
+
+  it('developer devolve Fixed For Next Build ao QA, mas não a fecha sozinho', () => {
+    expect(canRoleSetStatus('developer', 'Fixed For Next Build', 'To review')).toBe(true);
+    expect(canRoleSetStatus('developer', 'Fixed For Next Build', 'Fixed')).toBe(false);
+    expect(canRoleSetStatus('developer', 'Fixed For Next Build', 'Closed')).toBe(false);
   });
 
   it('viewer/convidado não gravam nada', () => {
