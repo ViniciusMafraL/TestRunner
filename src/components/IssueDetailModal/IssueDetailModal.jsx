@@ -1,27 +1,19 @@
 import { useState } from 'react';
-import { Keywords, Platform, Severity, Store } from 'shared/enums.js';
-import { ISSUE_EDITABLE_FIELDS, allowedStatusTargetsForRole } from 'shared/contracts.js';
+import { ISSUE_EDITABLE_FIELDS, allowedStatusTargetsForRole, canRoleSetStatus } from 'shared/contracts.js';
+import { parseIssueLog } from 'shared/issueLog.js';
 import { useSession } from '../../auth/SessionContext.jsx';
-import { useOperations } from '../../operations/OperationContext.jsx';
-import { useQaUsers } from '../../hooks/useQaUsers.js';
 import { StatusPill, StatusPillSelect } from '../StatusPill/StatusPill.jsx';
-import { AvatarGroup } from '../Avatar/Avatar.jsx';
+import { AvatarGroup, AvatarWithLabel } from '../Avatar/Avatar.jsx';
 import { FIELD_ICONS } from '../FieldIcons/FieldIcons.jsx';
-import { Dropdown } from '../Dropdown/Dropdown.jsx';
-import { MultiSelectDropdown } from '../Dropdown/MultiSelectDropdown.jsx';
 import { EvidenceGallery } from '../EvidenceGallery/EvidenceGallery.jsx';
+import { EvidencePicker } from '../EvidencePicker/EvidencePicker.jsx';
+import { IssueFormFields } from '../IssueFormFields/IssueFormFields.jsx';
 import { KeywordChips } from '../KeywordChips/KeywordChips.jsx';
 
 const SEVERITY_SLUG = { Critical: 'critical', Major: 'major', Compliance: 'compliance', Normal: 'normal' };
 
-/* Mesmos seletores de valores fixos do Reporter (ver contracts/api.md).
-   Found By e Keywords ficam fora (multi-seleção); Tag é montada no render pois
-   depende dos valores da operação (tagValues). */
-const EDIT_SELECTS = [
-  { name: 'severity', label: 'Severity', options: Severity },
-  { name: 'platform', label: 'Platform', options: Platform },
-  { name: 'store', label: 'Store', options: Store },
-];
+/** Status em que a issue está aguardando a validação do QA. */
+const RETEST_STATUS = 'To review';
 
 function FieldRow({ icon, label, children }) {
   return (
@@ -48,13 +40,25 @@ function formatLogDate(value) {
 }
 
 /**
- * Histórico da issue. Hoje só temos a data de criação (`createdIn`), então a
- * única entrada é "Report criado". Quando o backend passar a gravar mudanças de
- * status (ator + de→para + timestamp), novas linhas entram acima da criação.
+ * Histórico da issue: as mudanças de status gravadas (ator + status + nota +
+ * data, mais recentes no topo) seguidas de "Report criado" (data de `createdIn`).
+ * O log é texto simples numa célula da planilha; parseIssueLog o transforma em
+ * entradas. A nota só existe no fluxo de reteste ("reteste aprovado", etc.).
  */
 function IssueLog({ issue }) {
+  const entries = parseIssueLog(issue.log);
   return (
     <ul className="issue-log">
+      {entries.map((entry, index) => (
+        <li key={`${entry.at}-${index}`} className="issue-log-entry">
+          <span className="issue-log-dot" aria-hidden="true" />
+          <span className="issue-log-text">
+            {entry.actor} · {entry.status}
+            {entry.note ? ` — ${entry.note}` : ''}
+          </span>
+          {entry.at ? <span className="issue-log-date">{formatLogDate(entry.at)}</span> : null}
+        </li>
+      ))}
       <li className="issue-log-entry">
         <span className="issue-log-dot" aria-hidden="true" />
         <span className="issue-log-text">Report criado</span>
@@ -72,21 +76,107 @@ function buildForm(issue) {
   return form;
 }
 
-function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
+/**
+ * Formulário do "Reprovar": a prova de que o bug continua (evidências) e a
+ * versão em que o QA retestou. As evidências vão para a pasta RO- da issue e a
+ * versão entra no log e na descrição.
+ */
+function ReopenForm({ version, onVersionChange, comment, onCommentChange, files, onFilesChange, busy, error, onCancel, onConfirm }) {
+  return (
+    <div className="issue-retest-form">
+      <span className="fields-label">Reprovar reteste</span>
+
+      <div className="field-row">
+        <label className="field-label" htmlFor="retest-version">
+          {FIELD_ICONS.version}
+          Versão retestada *
+        </label>
+        <div className="field-control">
+          <input
+            id="retest-version"
+            type="text"
+            placeholder="0.0.0"
+            value={version}
+            disabled={busy}
+            onChange={(event) => onVersionChange(event.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="field-row">
+        <label className="field-label" htmlFor="retest-comment">
+          O que continua acontecendo
+        </label>
+        <div className="field-control">
+          <textarea
+            id="retest-comment"
+            className="form-desc-input"
+            placeholder="Opcional — vai para a descrição da issue"
+            value={comment}
+            disabled={busy}
+            onChange={(event) => onCommentChange(event.target.value)}
+          />
+        </div>
+      </div>
+
+      <div className="field-row">
+        <span className="field-label">
+          {FIELD_ICONS.attachment}
+          Evidência do reteste
+        </span>
+        <div className="field-control">
+          <EvidencePicker files={files} onChange={onFilesChange} disabled={busy} />
+        </div>
+      </div>
+
+      <div className="form-footer">
+        {error ? (
+          <span role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)', marginRight: 'auto' }}>
+            {error}
+          </span>
+        ) : null}
+        <button type="button" className="chip-button" onClick={onCancel} disabled={busy}>
+          Cancelar
+        </button>
+        <button type="button" className="button-primary" onClick={onConfirm} disabled={busy}>
+          {busy ? 'Reabrindo…' : 'Confirmar reabertura'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate, onRetestReopen, onEvidenceUpload }) {
   const { canWrite, session } = useSession();
-  const { tagValues } = useOperations();
-  const qaUsers = useQaUsers();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(() => buildForm(issue));
+  const [editFiles, setEditFiles] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [saveError, setSaveError] = useState(null);
   const [saving, setSaving] = useState(false);
+  // Bump depois de subir evidência: a galeria não troca de issue, então sem
+  // isso ela continuaria mostrando a lista antiga.
+  const [evidenceRefresh, setEvidenceRefresh] = useState(0);
+  const [reopening, setReopening] = useState(false);
+  const [retestVersion, setRetestVersion] = useState('');
+  const [retestComment, setRetestComment] = useState('');
+  const [retestFiles, setRetestFiles] = useState([]);
+  const [retestBusy, setRetestBusy] = useState(false);
+  const [retestError, setRetestError] = useState(null);
 
   const attachment = String(issue.attachment ?? '');
   const canEdit = canWrite && typeof onIssueUpdate === 'function';
+  // Aprovar/Reprovar só na issue que está com o QA e só para quem pode gravar
+  // essas transições (admin/qa) — o developer não ganha nada novo aqui.
+  const canRetest =
+    issue.status === RETEST_STATUS &&
+    typeof onRetestReopen === 'function' &&
+    typeof onStatusChange === 'function' &&
+    canRoleSetStatus(session?.role, RETEST_STATUS, 'Fixed');
 
   function startEditing() {
     setForm(buildForm(issue));
+    setEditFiles([]);
     setFieldErrors({});
     setSaveError(null);
     setEditing(true);
@@ -94,6 +184,20 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
 
   function updateField(name, value) {
     setForm((previous) => ({ ...previous, [name]: value }));
+  }
+
+  /** Sobe os arquivos um a um e devolve os que falharam (mesmo laço do Reporter). */
+  async function uploadFiles(files, kind) {
+    const failed = [];
+    for (const file of files) {
+      try {
+        await onEvidenceUpload(issue.id, file, kind);
+      } catch {
+        failed.push(file);
+      }
+    }
+    if (files.length > failed.length) setEvidenceRefresh((previous) => previous + 1);
+    return failed;
   }
 
   async function handleSave() {
@@ -109,7 +213,7 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
         patch[field] = form[field];
       }
     }
-    if (Object.keys(patch).length === 0) {
+    if (Object.keys(patch).length === 0 && editFiles.length === 0) {
       setEditing(false);
       return;
     }
@@ -117,12 +221,57 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
     setSaving(true);
     setSaveError(null);
     try {
-      await onIssueUpdate(issue.id, patch);
+      if (Object.keys(patch).length > 0) {
+        await onIssueUpdate(issue.id, patch);
+      }
+      // Evidências depois do PATCH: o campo já está salvo mesmo se o upload
+      // falhar. Os arquivos que falharem ficam na lista para nova tentativa.
+      if (editFiles.length > 0) {
+        const failed = await uploadFiles(editFiles, 'original');
+        setEditFiles(failed);
+        if (failed.length > 0) {
+          setSaveError(`Alterações salvas, mas falhou o envio de: ${failed.map((file) => file.name).join(', ')}`);
+          return;
+        }
+      }
       setEditing(false);
     } catch (error) {
       setSaveError(error.message ?? 'Não foi possível salvar a alteração');
     } finally {
       setSaving(false);
+    }
+  }
+
+  function startReopen() {
+    setRetestVersion('');
+    setRetestComment('');
+    setRetestFiles([]);
+    setRetestError(null);
+    setReopening(true);
+  }
+
+  async function handleConfirmReopen() {
+    if (!retestVersion.trim()) {
+      setRetestError('Informe a versão retestada');
+      return;
+    }
+    setRetestBusy(true);
+    setRetestError(null);
+    try {
+      // O status é o que importa: grava Reopen, a nota do log e o bloco na
+      // descrição numa gravação só. O upload que vier depois é best-effort.
+      await onRetestReopen(issue.id, { version: retestVersion.trim(), comment: retestComment.trim() });
+      const failed = retestFiles.length > 0 ? await uploadFiles(retestFiles, 'reopen') : [];
+      if (failed.length > 0) {
+        setRetestFiles(failed);
+        setRetestError(`Issue reaberta, mas falhou o envio de: ${failed.map((file) => file.name).join(', ')}`);
+        return;
+      }
+      setReopening(false);
+    } catch (error) {
+      setRetestError(error.message ?? 'Não foi possível reabrir a issue');
+    } finally {
+      setRetestBusy(false);
     }
   }
 
@@ -165,14 +314,39 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
               {/* Descrição + evidências rolam juntas quando a descrição é longa. */}
               <div className="issue-detail-scroll">
                 {issue.description ? <p className="issue-detail-description">{issue.description}</p> : null}
-                <EvidenceGallery issue={issue} />
+                <EvidenceGallery issue={issue} refreshKey={evidenceRefresh} />
               </div>
 
-              {canEdit ? (
+              {reopening ? (
+                <ReopenForm
+                  version={retestVersion}
+                  onVersionChange={setRetestVersion}
+                  comment={retestComment}
+                  onCommentChange={setRetestComment}
+                  files={retestFiles}
+                  onFilesChange={setRetestFiles}
+                  busy={retestBusy}
+                  error={retestError}
+                  onCancel={() => setReopening(false)}
+                  onConfirm={handleConfirmReopen}
+                />
+              ) : canEdit || canRetest ? (
                 <div className="issue-detail-actions">
-                  <button type="button" className="chip-button" onClick={startEditing}>
-                    Editar
-                  </button>
+                  {canEdit ? (
+                    <button type="button" className="chip-button" onClick={startEditing}>
+                      Editar
+                    </button>
+                  ) : null}
+                  {canRetest ? (
+                    <>
+                      <button type="button" className="chip-button" onClick={startReopen}>
+                        Reprovar
+                      </button>
+                      <button type="button" className="button-primary" onClick={() => onStatusChange(issue.id, 'Fixed')}>
+                        Aprovar
+                      </button>
+                    </>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -190,6 +364,9 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
               <div className="fields-label">Campos</div>
               <FieldRow label="Found By">
                 {issue.foundBy ? <AvatarGroup names={issue.foundBy} /> : <span className="field-value--empty">—</span>}
+              </FieldRow>
+              <FieldRow label="Responsible">
+                <AvatarWithLabel name={issue.responsible} />
               </FieldRow>
               <FieldRow label="Version">
                 {issue.version ? <span className="cell-mono">{issue.version}</span> : <span className="field-value--empty">—</span>}
@@ -226,6 +403,8 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
     );
   }
 
+  // Modo de edição: mesma estrutura da tela de Report (título, descrição,
+  // "Fields" e o mesmo IssueFormFields), para que as duas telas não divirjam.
   return (
     <div
       className="modal-overlay"
@@ -276,113 +455,39 @@ function IssueDetailContent({ issue, onClose, onStatusChange, onIssueUpdate }) {
 
         <div className="fields-label">Fields</div>
 
-        <div className="field-row">
-              <label className="field-label" htmlFor="edit-version">
-                {FIELD_ICONS.version}
-                Version *
-              </label>
-              <div className="field-control">
-                <input
-                  id="edit-version"
-                  type="text"
-                  placeholder="0.0.0"
-                  value={form.version}
-                  onChange={(event) => updateField('version', event.target.value)}
-                />
-                {fieldErrors.version ? (
-                  <span role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)' }}>
-                    {fieldErrors.version}
-                  </span>
-                ) : null}
-              </div>
-            </div>
-            <div className="field-row">
-              <label className="field-label" htmlFor="edit-foundBy">
-                {FIELD_ICONS.foundBy}
-                Found By
-              </label>
-              <div className="field-control">
-                <MultiSelectDropdown
-                  id="edit-foundBy"
-                  ariaLabel="Found By"
-                  value={form.foundBy}
-                  options={qaUsers}
-                  onChange={(next) => updateField('foundBy', next)}
-                />
-              </div>
-            </div>
-            <div className="field-row">
-              <label className="field-label" htmlFor="edit-keywords">
-                {FIELD_ICONS.keywords}
-                Keywords
-              </label>
-              <div className="field-control">
-                <MultiSelectDropdown
-                  id="edit-keywords"
-                  ariaLabel="Keywords"
-                  value={form.keywords}
-                  options={Keywords}
-                  onChange={(next) => updateField('keywords', next)}
-                />
-              </div>
-            </div>
-            {(tagValues.length > 0
-              ? [{ name: 'severity', label: 'Severity', options: Severity }, { name: 'tag', label: 'Tag', options: tagValues }, ...EDIT_SELECTS.slice(1)]
-              : EDIT_SELECTS
-            ).map((field) => (
-              <div key={field.name} className="field-row">
-                <label className="field-label" htmlFor={`edit-${field.name}`}>
-                  {FIELD_ICONS[field.name]}
-                  {field.label}
-                </label>
-                <div className="field-control">
-                  <Dropdown
-                    id={`edit-${field.name}`}
-                    value={form[field.name]}
-                    options={['', ...field.options]}
-                    onChange={(next) => updateField(field.name, next)}
-                  />
-                </div>
-              </div>
-            ))}
-            <div className="field-row">
-              <label className="field-label" htmlFor="edit-attachment">
-                {FIELD_ICONS.attachment}
-                Attachment
-              </label>
-              <div className="field-control">
-                <input
-                  id="edit-attachment"
-                  type="text"
-                  placeholder="Link do Google Drive"
-                  value={form.attachment}
-                  onChange={(event) => updateField('attachment', event.target.value)}
-                />
-              </div>
-            </div>
-            <FieldRow icon={FIELD_ICONS.createdIn} label="Created In">
-              <PlainValue value={issue.createdIn} />
-            </FieldRow>
+        <IssueFormFields
+          idPrefix="edit"
+          form={form}
+          onChange={updateField}
+          fieldErrors={fieldErrors}
+          evidenceFiles={editFiles}
+          onEvidenceChange={onEvidenceUpload ? setEditFiles : undefined}
+          disabled={saving}
+        />
 
-            <div className="form-footer">
-              {saveError ? (
-                <span role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)', marginRight: 'auto' }}>
-                  {saveError}
-                </span>
-              ) : null}
-              <button type="button" className="chip-button" onClick={() => setEditing(false)} disabled={saving}>
-                Cancelar
-              </button>
-              <button type="button" className="button-primary" onClick={handleSave} disabled={saving}>
-                {saving ? 'Salvando…' : 'Salvar'}
-              </button>
-            </div>
+        <FieldRow icon={FIELD_ICONS.createdIn} label="Created In">
+          <PlainValue value={issue.createdIn} />
+        </FieldRow>
+
+        <div className="form-footer">
+          {saveError ? (
+            <span role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)', marginRight: 'auto' }}>
+              {saveError}
+            </span>
+          ) : null}
+          <button type="button" className="chip-button" onClick={() => setEditing(false)} disabled={saving}>
+            Cancelar
+          </button>
+          <button type="button" className="button-primary" onClick={handleSave} disabled={saving}>
+            {saving ? 'Salvando…' : 'Salvar'}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-export function IssueDetailModal({ issue, onClose, onStatusChange, onIssueUpdate }) {
+export function IssueDetailModal({ issue, onClose, onStatusChange, onIssueUpdate, onRetestReopen, onEvidenceUpload }) {
   if (!issue) return null;
   // key por issue: trocar de issue descarta o estado de edição/formulário.
   return (
@@ -392,6 +497,8 @@ export function IssueDetailModal({ issue, onClose, onStatusChange, onIssueUpdate
       onClose={onClose}
       onStatusChange={onStatusChange}
       onIssueUpdate={onIssueUpdate}
+      onRetestReopen={onRetestReopen}
+      onEvidenceUpload={onEvidenceUpload}
     />
   );
 }

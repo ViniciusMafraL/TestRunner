@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Status } from 'shared/enums.js';
 import { api } from '../../api/client.js';
 import { useOperations } from '../../operations/OperationContext.jsx';
 import { boardUrlForOperation } from '../../operations/operationBoards.js';
@@ -36,8 +37,21 @@ function OperationBoardButton({ operationId }) {
   );
 }
 
+/**
+ * Largura da coluna Status derivada do rótulo mais longo do enum. A tabela é
+ * `table-layout: fixed` e a pílula usa `white-space: nowrap`, então uma largura
+ * fixa fazia um status longo (ex.: "Fixed For Next Build") vazar por cima do
+ * Title. Assim a Home se reajusta sozinha quando um status novo entra ou é
+ * renomeado, sem número mágico para manter.
+ *
+ * O acréscimo cobre o que não é texto: o "cromo" da pílula (padding 2×10px,
+ * gap 6px e ponto de 7px) mais o padding da célula (2×var(--space-3)).
+ */
+const LONGEST_STATUS_CHARS = Math.max(...Status.map((status) => status.length));
+const STATUS_COLUMN_WIDTH = `calc(${LONGEST_STATUS_CHARS}ch + 3.75rem)`;
+
 const COLUMN_WIDTHS = {
-  status: 120,
+  status: STATUS_COLUMN_WIDTH,
   severity: 110,
   foundBy: 150,
   version: 90,

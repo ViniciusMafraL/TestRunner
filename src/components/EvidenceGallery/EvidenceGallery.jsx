@@ -27,12 +27,49 @@ function VideoPreview({ file }) {
   );
 }
 
+/** Um bloco de evidências (vídeos, depois miniaturas, depois outros arquivos). */
+function EvidenceSection({ title, files, variant }) {
+  if (files.length === 0) return null;
+  const videos = files.filter((file) => String(file.mimeType).startsWith('video/'));
+  const images = files.filter((file) => String(file.mimeType).startsWith('image/'));
+  const others = files.filter((file) => !videos.includes(file) && !images.includes(file));
+
+  return (
+    <div className={variant ? `evidence-gallery-section evidence-gallery-section--${variant}` : 'evidence-gallery-section'}>
+      <span className="evidence-gallery-title">{title}</span>
+      {videos.map((file) => (
+        <VideoPreview key={file.id} file={file} />
+      ))}
+      {images.length > 0 ? (
+        <div className="evidence-gallery-grid">
+          {images.map((file) => (
+            <a key={file.id} href={file.webViewLink} target="_blank" rel="noreferrer" title={file.name}>
+              <img className="evidence-gallery-thumb" src={file.thumbnailUrl} alt={file.name} loading="lazy" />
+            </a>
+          ))}
+        </div>
+      ) : null}
+      {others.map((file) => (
+        <a key={file.id} className="attachment-link" href={file.webViewLink} target="_blank" rel="noreferrer">
+          {file.name}
+        </a>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Pré-visualizador das evidências da issue (GET /issues/:id/evidence).
  * Só aparece quando o attachment é uma pasta de evidências do Drive; issues
  * com attachment manual (link avulso) continuam mostrando apenas o link.
+ *
+ * As evidências do reteste (pasta RO- da issue reaberta) vêm marcadas com
+ * kind 'reopen' e aparecem num bloco logo abaixo das originais.
+ *
+ * `refreshKey` força uma nova busca sem trocar de issue — usado depois de subir
+ * a evidência do reopen, que não muda o id nem, necessariamente, o attachment.
  */
-export function EvidenceGallery({ issue }) {
+export function EvidenceGallery({ issue, refreshKey = 0 }) {
   const attachment = String(issue.attachment ?? '');
   const isEvidenceFolder = attachment.includes('drive.google.com/drive/folders');
   // null = carregando; [] = sem arquivos (ou erro — o link da pasta segue no campo Attachment).
@@ -53,7 +90,7 @@ export function EvidenceGallery({ issue }) {
     return () => {
       cancelled = true;
     };
-  }, [issue.id, isEvidenceFolder]);
+  }, [issue.id, isEvidenceFolder, refreshKey]);
 
   if (!isEvidenceFolder) return null;
   if (files === null) {
@@ -66,30 +103,13 @@ export function EvidenceGallery({ issue }) {
   }
   if (files.length === 0) return null;
 
-  const videos = files.filter((file) => String(file.mimeType).startsWith('video/'));
-  const images = files.filter((file) => String(file.mimeType).startsWith('image/'));
-  const others = files.filter((file) => !videos.includes(file) && !images.includes(file));
+  const reopenFiles = files.filter((file) => file.kind === 'reopen');
+  const originalFiles = files.filter((file) => file.kind !== 'reopen');
 
   return (
     <div className="evidence-gallery">
-      <span className="evidence-gallery-title">Evidências</span>
-      {videos.map((file) => (
-        <VideoPreview key={file.id} file={file} />
-      ))}
-      {images.length > 0 ? (
-        <div className="evidence-gallery-grid">
-          {images.map((file) => (
-            <a key={file.id} href={file.webViewLink} target="_blank" rel="noreferrer" title={file.name}>
-              <img className="evidence-gallery-thumb" src={file.thumbnailUrl} alt={file.name} loading="lazy" />
-            </a>
-          ))}
-        </div>
-      ) : null}
-      {others.map((file) => (
-        <a key={file.id} className="attachment-link" href={file.webViewLink} target="_blank" rel="noreferrer">
-          {file.name}
-        </a>
-      ))}
+      <EvidenceSection title="Evidências" files={originalFiles} />
+      <EvidenceSection title="Evidências do reteste (Reopen)" files={reopenFiles} variant="reopen" />
     </div>
   );
 }

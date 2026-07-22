@@ -1,25 +1,10 @@
 import { useState } from 'react';
-import { Severity, Platform, Keywords, Store } from 'shared/enums.js';
 import { api } from '../../api/client.js';
 import { useSession } from '../../auth/SessionContext.jsx';
 import { useOperations } from '../../operations/OperationContext.jsx';
-import { useQaUsers } from '../../hooks/useQaUsers.js';
 import { PageHeader } from '../../components/PageHeader/PageHeader.jsx';
 import { FIELD_ICONS } from '../../components/FieldIcons/FieldIcons.jsx';
-import { Dropdown } from '../../components/Dropdown/Dropdown.jsx';
-import { MultiSelectDropdown } from '../../components/Dropdown/MultiSelectDropdown.jsx';
-import { EvidencePicker } from '../../components/EvidencePicker/EvidencePicker.jsx';
-
-/* Campos principais sempre visíveis; os demais ficam atrás de "Mais campos".
-   Found By fica fora desta lista: é multi-seleção com os QAs registrados. */
-const PRIMARY_SELECTS = [
-  { name: 'severity', label: 'Severity', options: Severity },
-  { name: 'platform', label: 'Platform', options: Platform },
-];
-
-/* Keywords e Tag ficam fora desta lista: Keywords é multi-seleção; Tag depende
-   dos valores da operação (tagValues) e por isso é montada no render. */
-const EXTRA_SELECTS = [{ name: 'store', label: 'Store', options: Store }];
+import { IssueFormFields } from '../../components/IssueFormFields/IssueFormFields.jsx';
 
 const INITIAL_FORM = {
   title: '',
@@ -34,30 +19,13 @@ const INITIAL_FORM = {
   store: '',
 };
 
-function SelectRow({ field, value, onChange }) {
-  const id = `field-${field.name}`;
-  return (
-    <div className="field-row">
-      <label className="field-label" htmlFor={id}>
-        {FIELD_ICONS[field.name]}
-        {field.label}
-      </label>
-      <div className="field-control">
-        <Dropdown id={id} value={value} options={['', ...field.options]} onChange={(next) => onChange(field.name, next)} />
-      </div>
-    </div>
-  );
-}
-
 export function Reporter() {
   const { canWrite } = useSession();
-  const { operations, currentOperation, currentProject, projects, tagValues } = useOperations();
-  const qaUsers = useQaUsers();
+  const { operations, currentOperation, currentProject, projects } = useOperations();
   const [form, setForm] = useState(INITIAL_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState(null);
   const [submitError, setSubmitError] = useState(null);
-  const [showExtra, setShowExtra] = useState(false);
   const [evidenceFiles, setEvidenceFiles] = useState([]);
   // { index, total, percent } enquanto as evidências sobem; null fora disso.
   const [uploadProgress, setUploadProgress] = useState(null);
@@ -171,117 +139,32 @@ export function Reporter() {
 
         <div className="fields-label">Fields</div>
 
-        <div className="field-row">
-          <label className="field-label" htmlFor="field-version">
-            {FIELD_ICONS.version}
-            Version *
-          </label>
-          <div className="field-control">
-            <input
-              id="field-version"
-              type="text"
-              placeholder="0.0.0"
-              value={form.version}
-              onChange={(event) => updateField('version', event.target.value)}
-            />
-            {fieldErrors.version ? (
-              <span role="alert" style={{ font: 'var(--font-label)', color: 'var(--color-status-error)' }}>
-                {fieldErrors.version}
+        <IssueFormFields
+          idPrefix="field"
+          form={form}
+          onChange={updateField}
+          fieldErrors={fieldErrors}
+          evidenceFiles={evidenceFiles}
+          onEvidenceChange={setEvidenceFiles}
+          disabled={uploadProgress !== null}
+          // Exclusivo do Reporter: para qual operação/aba a issue vai.
+          afterVersion={
+            <div className="field-row">
+              <span className="field-label">
+                {FIELD_ICONS.tag}
+                Destino
               </span>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="field-row">
-          <span className="field-label">
-            {FIELD_ICONS.tag}
-            Destino
-          </span>
-          <div className="field-control">
-            <span style={{ font: 'var(--font-label)' }} aria-label="Destino da issue">
-              {destination}
-            </span>
-            <span style={{ font: 'var(--font-label)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
-              O projeto vem da aba selecionada no menu lateral.
-            </span>
-          </div>
-        </div>
-
-        {PRIMARY_SELECTS.map((field) => (
-          <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
-        ))}
-
-        <div className="field-row">
-          <label className="field-label" htmlFor="field-foundBy">
-            {FIELD_ICONS.foundBy}
-            Found By
-          </label>
-          <div className="field-control">
-            <MultiSelectDropdown
-              id="field-foundBy"
-              ariaLabel="Found By"
-              value={form.foundBy}
-              options={qaUsers}
-              onChange={(next) => updateField('foundBy', next)}
-            />
-          </div>
-        </div>
-
-        <div className="field-row">
-          <span className="field-label">
-            {FIELD_ICONS.attachment}
-            Evidências
-          </span>
-          <div className="field-control">
-            <EvidencePicker files={evidenceFiles} onChange={setEvidenceFiles} disabled={uploadProgress !== null} />
-          </div>
-        </div>
-
-        <button type="button" className="form-more-toggle" onClick={() => setShowExtra((previous) => !previous)}>
-          <span aria-hidden="true">{showExtra ? '▾' : '▸'}</span>
-          {showExtra ? 'Ocultar campos extras' : 'Mais campos (Tag, Keywords, Store, Attachment)'}
-        </button>
-
-        {showExtra ? (
-          <>
-            {tagValues.length > 0 ? (
-              <SelectRow field={{ name: 'tag', label: 'Tag', options: tagValues }} value={form.tag} onChange={updateField} />
-            ) : null}
-            {EXTRA_SELECTS.map((field) => (
-              <SelectRow key={field.name} field={field} value={form[field.name]} onChange={updateField} />
-            ))}
-            <div className="field-row">
-              <label className="field-label" htmlFor="field-keywords">
-                {FIELD_ICONS.keywords}
-                Keywords
-              </label>
               <div className="field-control">
-                <MultiSelectDropdown
-                  id="field-keywords"
-                  ariaLabel="Keywords"
-                  value={form.keywords}
-                  options={Keywords}
-                  onChange={(next) => updateField('keywords', next)}
-                />
+                <span style={{ font: 'var(--font-label)' }} aria-label="Destino da issue">
+                  {destination}
+                </span>
+                <span style={{ font: 'var(--font-label)', color: 'var(--text-muted)', marginTop: 'var(--space-1)' }}>
+                  O projeto vem da aba selecionada no menu lateral.
+                </span>
               </div>
             </div>
-            <div className="field-row">
-              <label className="field-label" htmlFor="field-attachment">
-                {FIELD_ICONS.attachment}
-                Attachment
-              </label>
-              <div className="field-control">
-                <input
-                  id="field-attachment"
-                  type="text"
-                  placeholder="Link do Google Drive"
-                  value={form.attachment}
-                  onChange={(event) => updateField('attachment', event.target.value)}
-                />
-              </div>
-            </div>
-          </>
-        ) : null}
+          }
+        />
 
         <div className="form-footer">
           {uploadProgress ? (

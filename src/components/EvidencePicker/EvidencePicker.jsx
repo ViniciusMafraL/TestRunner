@@ -41,7 +41,7 @@ function mediaFilesFrom(source) {
     }
   }
 
-  return collected.filter(isAcceptedType).map((file) => {
+  return collected.filter((file) => isAcceptedType(file.type)).map((file) => {
     const hasName = file.name && file.name !== 'image.png' && file.name !== 'blob';
     if (hasName) return file;
     const ext = (file.type.split('/')[1] ?? 'png').split('+')[0];

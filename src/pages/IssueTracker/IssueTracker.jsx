@@ -214,6 +214,37 @@ export function IssueTracker() {
     return updated;
   }
 
+  // Reconcilia uma issue com a versão autoritativa do servidor (mantém o
+  // agrupamento; o status já foi aplicado otimisticamente).
+  function reconcileIssue(updated) {
+    setGroups((previousGroups) =>
+      previousGroups.map((group) => ({
+        ...group,
+        issues: group.issues.map((issue) => (issue.id === updated.id ? updated : issue)),
+      })),
+    );
+  }
+
+  /**
+   * Reprovar do reteste: grava Reopen junto com a versão retestada, que o
+   * servidor transforma em nota no log e bloco na descrição. Como o Editar (e
+   * ao contrário do dropdown de status), é um envio explícito de formulário —
+   * então espera a persistência e deixa o erro subir para o modal tratar.
+   */
+  async function handleRetestReopen(id, retest) {
+    const updated = await api.updateIssueStatus(id, 'Reopen', retest);
+    applyStatusLocally(id, 'Reopen');
+    reconcileIssue(updated);
+    return updated;
+  }
+
+  /** Anexa uma evidência (kind 'reopen' vai para a pasta RO- da issue). */
+  async function handleEvidenceUpload(id, file, kind) {
+    const updated = await api.uploadIssueEvidence(id, file, undefined, kind);
+    reconcileIssue(updated);
+    return updated;
+  }
+
   function handleStatusChange(id, nextStatus) {
     const issue = findIssue(id);
     if (!issue) return;
@@ -221,7 +252,13 @@ export function IssueTracker() {
       previousValue: issue.status,
       nextValue: nextStatus,
       applyLocally: (status) => applyStatusLocally(id, status),
-      persist: (status) => api.updateIssueStatus(id, status),
+      // No sucesso, reconcilia com a resposta do servidor — que traz o
+      // responsável e a nova linha de log preenchidos.
+      persist: async (status) => {
+        const updated = await api.updateIssueStatus(id, status);
+        reconcileIssue(updated);
+        return updated;
+      },
     });
   }
 
@@ -532,6 +569,9 @@ export function IssueTracker() {
         // (viewer/convidado veem texto). Edição de campos segue só para canWrite.
         onStatusChange={handleStatusChange}
         onIssueUpdate={canWrite ? handleIssueUpdate : undefined}
+        // Reteste e anexo de evidência exigem escrita (admin/qa).
+        onRetestReopen={canWrite ? handleRetestReopen : undefined}
+        onEvidenceUpload={canWrite ? handleEvidenceUpload : undefined}
       />
 
       {selectionMode ? (
